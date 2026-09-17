@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 580" role="img" aria-labelledby="title desc">
+  <title id="title">charport developer integration map</title>
+  <desc id="desc">A technical flowchart showing a producer package registering an ALTREP class or using charvec, charport storing registrations, and a consumer package reading through charport::Reader.</desc>
+  <!--
+    Theme-safe palette (shared with altrep-string-access). Transparent
+    background; every label rides on a white or lavender fill. The charport
+    hub column carries a translucent lavender wash (fill-opacity) so it reads
+    as a soft accent on both light and dark pages without a baked background.
+      ink #2c1f57 · deep #3a2a78 · edge #6a4fa6 · line #8670bf
+      muted #6d5fa0 · wash #efe9fa/#e2d8f4 · hubwash #a892d8@0.12
+  -->
+  <defs>
+    <style>
+      .lane   { fill: #ffffff; stroke: #6a4fa6; stroke-width: 1.6; }
+      .label  { fill: #2c1f57; font: 650 16px Inter, Avenir, Helvetica, Arial, sans-serif; }
+      .mono   { fill: #2c1f57; font: 650 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .muted  { fill: #6d5fa0; font: 600 14px Inter, Avenir, Helvetica, Arial, sans-serif; }
+      .col    { fill: #2c1f57; font: 700 18px Inter, Avenir, Helvetica, Arial, sans-serif; }
+      .hubttl { fill: #ffffff; font: 750 21px Inter, Avenir, Helvetica, Arial, sans-serif; }
+      .arrow  { fill: none; stroke: #8670bf; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+      .elabel { fill: #2c1f57; font: 650 14px Inter, Avenir, Helvetica, Arial, sans-serif; }
+      .echip  { fill: #ffffff; stroke: #8670bf; stroke-width: 1.2; }
+    </style>
+    <linearGradient id="wash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe9fa"/>
+      <stop offset="1" stop-color="#e2d8f4"/>
+    </linearGradient>
+    <linearGradient id="deepwash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a3690"/>
+      <stop offset="1" stop-color="#352575"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#8670bf"/>
+    </marker>
+  </defs>
+  <rect x="40" y="34" width="1000" height="512" rx="22" fill="#ffffff" stroke="#b9a9df" stroke-width="2.2"/>
+  <g transform="translate(0,30)">
+
+  <!-- hub accent column (translucent, adapts to page background) -->
+  <rect x="356" y="28" width="368" height="466" rx="18" fill="#a892d8" fill-opacity="0.12"/>
+
+  <!-- column headers -->
+  <rect x="104" y="40" width="152" height="40" rx="20" fill="url(#wash)" stroke="#b9a9df" stroke-width="1.2"/>
+  <text x="180" y="66" text-anchor="middle" class="col">producerpkg</text>
+  <rect x="462" y="38" width="156" height="44" rx="22" fill="url(#deepwash)"/>
+  <text x="540" y="67" text-anchor="middle" class="hubttl">charport</text>
+  <rect x="824" y="40" width="152" height="40" rx="20" fill="url(#wash)" stroke="#b9a9df" stroke-width="1.2"/>
+  <text x="900" y="66" text-anchor="middle" class="col">consumerpkg</text>
+
+  <!-- producer nodes -->
+  <rect x="70" y="116" width="220" height="82" rx="10" class="lane"/>
+  <text x="180" y="148" text-anchor="middle" class="label">Package-specific</text>
+  <text x="180" y="170" text-anchor="middle" class="label">ALTREP class</text>
+  <text x="180" y="189" text-anchor="middle" class="muted">owns storage layout</text>
+
+  <rect x="70" y="256" width="220" height="78" rx="10" class="lane"/>
+  <text x="180" y="288" text-anchor="middle" class="mono">register_altrep()</text>
+  <text x="180" y="310" text-anchor="middle" class="muted">init / get / release</text>
+
+  <rect x="70" y="388" width="220" height="52" rx="10" class="lane"/>
+  <text x="180" y="420" text-anchor="middle" class="label">use charvec directly</text>
+
+  <!-- hub nodes -->
+  <rect x="410" y="116" width="260" height="96" rx="10" class="lane"/>
+  <text x="540" y="147" text-anchor="middle" class="label">Registry</text>
+  <text x="540" y="170" text-anchor="middle" class="muted">ALTREP class &#8594; read methods</text>
+  <text x="540" y="192" text-anchor="middle" class="muted">view guarantees + release hook</text>
+
+  <rect x="410" y="270" width="260" height="72" rx="10" class="lane"/>
+  <text x="540" y="300" text-anchor="middle" class="label">charvec</text>
+  <text x="540" y="322" text-anchor="middle" class="muted">built-in registered class</text>
+
+  <!-- consumer nodes -->
+  <rect x="790" y="116" width="220" height="82" rx="10" class="lane"/>
+  <text x="900" y="148" text-anchor="middle" class="mono">charport::Reader</text>
+  <text x="900" y="170" text-anchor="middle" class="muted">constructed from SEXP</text>
+  <text x="900" y="189" text-anchor="middle" class="muted">resolves read path once</text>
+
+  <rect x="790" y="256" width="220" height="96" rx="10" class="lane"/>
+  <text x="900" y="288" text-anchor="middle" class="mono">StrView</text>
+  <text x="900" y="310" text-anchor="middle" class="muted">ptr + len + enc</text>
+  <text x="900" y="332" text-anchor="middle" class="muted">(non-materializing)</text>
+
+  <rect x="790" y="388" width="220" height="52" rx="10" class="lane"/>
+  <text x="900" y="420" text-anchor="middle" class="label">Consumer algorithm</text>
+
+  <!-- edges -->
+  <path d="M180 198 V252" class="arrow"/>
+  <path d="M290 295 C345 295 346 164 402 164" class="arrow"/>
+  <rect x="313" y="221" width="68" height="23" rx="7" class="echip"/>
+  <text x="347" y="237" text-anchor="middle" class="elabel">Register</text>
+
+  <text x="180" y="368" text-anchor="middle" class="muted">or</text>
+  <path d="M290 414 C345 414 346 306 402 306" class="arrow"/>
+
+  <path d="M900 198 V252" class="arrow"/>
+  <path d="M900 352 V382" class="arrow"/>
+
+  <path d="M790 156 H678" class="arrow"/>
+  <rect x="701" y="128" width="64" height="23" rx="7" class="echip"/>
+  <text x="733" y="144" text-anchor="middle" class="elabel">resolve</text>
+
+  <path d="M670 170 H782" class="arrow"/>
+  <rect x="678" y="175" width="96" height="23" rx="7" class="echip"/>
+  <text x="726" y="191" text-anchor="middle" class="elabel">read methods</text>
+
+  <path d="M540 270 V216" class="arrow"/>
+  </g>
+</svg>

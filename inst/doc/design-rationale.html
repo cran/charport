@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Design Rationale</title>
+<style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+width: 0.8em;
+margin: 0 0.8em 0.2em -1em;  vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+</style>
+</head>
+
+<body>
+
+
+<header id="title-block-header">
+<h1 class="title">Design Rationale</h1>
+
+</header>
+
+
+<h2 id="overview">Overview</h2>
+<p><code>charport</code> is trying to fill in a gap between ALTREP string producers and the packages that consume their vectors. ALTREP gives the producer control over storage, but it does not provide a general way for another package to read that data in bulk. The consumer either uses R’s string API, which may materialize the vector, or writes a separate integration for each ALTREP class.</p>
+<p><code>charport</code> supplies a small shared contract instead. A producer can expose byte views and state how long they remain valid and whether they may be accessed concurrently. A consumer uses the same <code>Reader</code> interface for registered ALTREP classes and ordinary R character vectors, with R’s standard access path as the fallback.</p>
+<h2 id="range-access-first">Range access first</h2>
+<p>Range access fits R’s vectorized style. <code>charport</code> uses range and indexed callbacks instead of scalar callbacks, with separate entry points for string views, byte views, lengths, and encodings. The producer fills caller-owned arrays for the shape the consumer requested. This gives consumers a bulk path without forcing either side to allocate one wrapper object per element. It also lets producers optimize the common contiguous case with <code>memcpy</code> when their storage is already arranged that way.</p>
+<h2 id="no-pointer-only-access">No pointer-only access</h2>
+<p>A <code>const char *</code> returned by <code>charport</code> is a byte pointer, not necessarily a null-terminated C string. Without the byte length, a consumer cannot know where the string ends, and calling <code>strlen()</code> may read past the view. Requiring every provider to add a terminator would rule out useful storage layouts or force a copy solely to satisfy the access API.</p>
+<p>For that reason, <code>byteviews()</code> returns pointers and lengths together. A length is useful by itself for tasks such as sizing an output buffer, so <code>lengths()</code> also has its own entry point. A pointer by itself is not a complete view, so there is no corresponding pointer-only entry point.</p>
+<h2 id="reader-fallback"><code>Reader</code> fallback</h2>
+<p><code>Reader</code> first uses ordinary R storage when it is already available: <code>DATAPTR_OR_NULL(x)</code> gives a direct pointer array without forcing. That path has persistent views, but it is still R-managed storage, so <code>charport</code> does not advertise concurrent access.</p>
+<p>If the vector is ALTREP and its class is registered, <code>Reader</code> asks the class to start a borrow. A registered class may still decline a particular vector by returning <code>NULL</code> from its init callback. In that case, or when the ALTREP class is not registered, <code>Reader</code> falls back to <code>STRING_PTR_RO(x)</code>.</p>
+<p>That fallback is intentionally plain R behavior. It may materialize the ALTREP, but it preserves correctness for every character vector. <code>charport</code> is an escape hatch from materialization when a producer allows it.</p>
+<h2 id="construction-and-access-use-different-errors">Construction and access use different errors</h2>
+<p>Reader construction is an R-facing operation. A registered provider may call R during initialization, and the fallback may allocate while materializing an ALTREP vector. Reader construction therefore allows R errors, and consumers must handle them. The Reader itself does not control any state before resolution succeeds, so it does not itself need cleanup after an R error.</p>
+<p><code>Rcpp</code> and <code>cpp11</code> consumers can choose named construction adapters when they need an R error converted to the exception type used by their wrapper. Effectively, this allows the reader to be an extension of <code>Rcpp</code> and <code>cpp11</code>.</p>
+<p>Access has different constraints. It may run on worker threads, where calling R is forbidden, and a realistic provider may need to allocate. Access callbacks return a plain integer status and <code>Reader</code> converts a failure status to a standard C++ exception.</p>
+<h2 id="capability-bits">Capability bits</h2>
+<p>The two capabilities record the promises a consumer actually needs after a bulk read.</p>
+<p><code>Reader::persistent_views()</code> answers a practical question: can the returned byte pointers survive the next reader call? If <code>false</code>, use a pointer before calling the Reader again. If <code>true</code>, views can be collected and processed later while the borrow is active.</p>
+<p><code>Reader::concurrent_access()</code> answers a slightly different question: whether reader callbacks may run on multiple threads, including worker threads.</p>
+<p><code>Reader::reentrant()</code> is therefore derived, not stored: it is the case where both promises are true.</p>
+<h2 id="why-cetype_ext_t">Why <code>cetype_ext_t</code></h2>
+<p><code>charport</code> carries encoding marks because bytes alone are not enough to reconstruct R strings correctly. Rather than use R’s <code>cetype_t</code> directly, it uses an equivalent and efficient one-byte type for string data. It is a one-byte struct rather than an enum so that both C and C++ can use the same type.</p>
+<p><code>cetype_ext_t</code> provides a small, fixed representation. It takes up less space using one byte (instead of R’s plain <code>int</code> enum), carries comprehensive encoding information, and includes <code>CETYPE_EXT_NA</code> so an encoding view can carry missingness without consulting separate parts.</p>
+<p>It also distinguishes ASCII with <code>CETYPE_EXT_ASCII</code>. R stores an ASCII bit for every string. When it is set, it always co-occurs with <code>CETYPE_EXT_NATIVE</code>, so <code>CETYPE_EXT_ASCII</code> represents a mutually exclusive state.</p>
+<p><code>CETYPE_EXT_ASCII_OR_UTF8</code> lets a producer report if a string is UTF-8-compatible without scanning bytes to decide whether the string is also ASCII. R makes that check when it creates a <code>CHARSXP</code>, so doing it in the producer can duplicate work. Base R always checks if a string is ASCII during materialization or <code>CHARSXP</code> creation. So forcing ASCII vs. UTF-8 resolution would frequently become a redundant calculation if the string data source doesn’t distinguish between ASCII and UTF-8. Data sources outside of R usually don’t, and R will determine the resolution later anyway.</p>
+<p><code>cetype_ext_t</code> is complete for string data: it represents every encoding state R uses for <code>CHARSXP</code>s, along with <code>CETYPE_EXT_ASCII</code>, <code>CETYPE_EXT_ASCII_OR_UTF8</code>, and <code>CETYPE_EXT_NA</code>. The two omitted <code>cetype_t</code> values, <code>CE_SYMBOL</code> and <code>CE_ANY</code>, are unused as encoding states for <code>CHARSXP</code>s.</p>
+<h2 id="charvec-efficient-and-flexible-altrep-storage"><code>charvec</code>: efficient and flexible ALTREP storage</h2>
+<p><code>charvec</code> is both a reference implementation and a useful output class. Its storage is shaped for the reader contract: three contiguous metadata arrays for pointers, byte lengths, and encoding marks, plus owned byte slices that hold the payload.</p>
+<p>The separate metadata arrays make contiguous reads cheap. For <code>charvec</code>, a range request can copy pointers, lengths, and encodings directly into the consumer’s output arrays.</p>
+<p>The string data is stored in slices instead of one giant buffer or one allocation per string. One giant buffer requires knowing the final byte size up front and is awkward for streaming input. On the other hand, one allocation per string is expensive and fragmented.</p>
+<p>Slices give a middle ground: append-friendly construction, stable pointers during a read-only borrow and fewer allocation calls.</p>
+<p>The three different builder classes correspond to common vector building patterns:</p>
+<ul>
+<li><code>Builder</code> handles ordinary serial output when strings arrive one at a time.</li>
+<li><code>ParallelBuilder</code> gives each worker its own slice chain while sharing the final metadata arrays. That avoids concurrent writes to the same byte buffer while still producing one <code>charvec</code>.</li>
+<li><code>GrowableBuilder</code> handles serial output whose final vector length is not yet known at the start.</li>
+</ul>
+<p>Builder conversion creates an external pointer with a null address, registers its finalizer, and creates the ALTREP object. It moves the <code>Store</code> and installs the address only after those R allocations succeed. On failure, the caller’s <code>Store</code> remains intact, so <code>to_sexp_with_rcpp()</code> and <code>to_sexp_with_cpp11()</code> can unwind without losing it.</p>
+<p>When a <code>charvec</code> is fully materialized, it caches an ordinary <code>STRSXP</code> in ALTREP <code>data2</code> and releases the <code>charvec::Store</code> held in <code>data1</code>. The reader then naturally uses the ordinary fallback path over the cached <code>STRSXP</code>.</p>
+
+
+
+
+
+</body></html>

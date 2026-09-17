@@ -1,0 +1,38 @@
+Package: charport
+Title: ALTREP String Interoperability
+Version: 0.1.0
+Date: 2026-09-08
+Authors@R: c(
+    person("Travers", "Ching", email = "traversc@gmail.com", role = c("aut", "cre", "cph")),
+    person("R Consortium", role = "fnd",
+           comment = "Infrastructure Steering Committee grant: Universal ALTREP Interoperability for Strings"))
+Description: Provides infrastructure for interoperable ALTREP character vectors.
+    Producers of ALTREP string classes can register access methods,
+    allowing consumers to read supported character vectors through
+    a common interface without materializing them as ordinary R strings.
+    Also provides 'charvec', a reference ALTREP string implementation backed
+    by stable memory slices, with support for efficient and multithreaded
+    construction.
+License: MIT + file LICENSE
+Copyright: Benchmark measurements use the enwik8 corpus, the first 10^8
+        bytes of the English Wikipedia XML dump of 2006-03-03, whose
+        text carries Wikipedia's own terms: the Creative Commons
+        Attribution-ShareAlike License and the GNU Free Documentation
+        License. No Wikipedia data is included in this package.
+Encoding: UTF-8
+Suggests: cpp11, quarto, Rcpp
+VignetteBuilder: quarto
+Depends: R (>= 3.6.0)
+URL: https://github.com/charbase/charport,
+        https://charbase.github.io/charport/
+BugReports: https://github.com/charbase/charport/issues
+Config/roxygen2/version: 8.0.0
+Config/Needs/website: pkgdown, xml2
+NeedsCompilation: yes
+Packaged: 2026-09-09 07:15:06 UTC; ted
+Author: Travers Ching [aut, cre, cph],
+  R Consortium [fnd] (Infrastructure Steering Committee grant: Universal
+    ALTREP Interoperability for Strings)
+Maintainer: Travers Ching <traversc@gmail.com>
+Repository: CRAN
+Date/Publication: 2026-09-17 10:50:02 UTC

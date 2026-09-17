@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Error Handling</title>
+<style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+width: 0.8em;
+margin: 0 0.8em 0.2em -1em;  vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+}
+pre.numberSource { margin-left: 3em; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+</style>
+</head>
+
+<body>
+
+
+<header id="title-block-header">
+<h1 class="title">Error Handling</h1>
+
+</header>
+
+
+<h2 id="overview">Overview</h2>
+<p>R packages with compiled code have several error mechanisms that do not always work well together: C++ exceptions, C-style errors, and R errors. No single mechanism is safe and idiomatic in every context. The design in <code>charport</code> does not try to put all of these error mechanisms into a single system, but instead tries to be parsimonious, only allowing errors to propagate based on the code and boundaries they interact with.</p>
+<p>Operations that call R or construct R objects use R errors, because those operations can already fail through R. Pure C++ operations use standard C++ exceptions, while C access callbacks return C-style integer error codes.</p>
+<h2 id="reader-and-builder">Reader and Builder</h2>
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Part</th>
+<th>C++ error handling</th>
+<th>C error handling</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Reader construction</td>
+<td>Empty construction has no error. <code>Reader(SEXP)</code> uses R errors; <code>with_rcpp()</code> and <code>with_cpp11()</code> adapt construction to the framework’s C++ exception</td>
+<td>R error</td>
+</tr>
+<tr class="even">
+<td>Reader reset</td>
+<td><code>reset(SEXP)</code> uses R errors. If resolution fails, the Reader keeps its current borrow.</td>
+<td>R error</td>
+</tr>
+<tr class="odd">
+<td>Reader access</td>
+<td>Standard C++ exception</td>
+<td>Integer status</td>
+</tr>
+<tr class="even">
+<td>Reader destruction</td>
+<td>None</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>Builder construction</td>
+<td>Standard C++ exception</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td>Builder string append</td>
+<td>Standard C++ exception</td>
+<td>N/A</td>
+</tr>
+<tr class="odd">
+<td>Builder <code>to_sexp()</code></td>
+<td>R error; <code>to_sexp_with_rcpp()</code> and <code>to_sexp_with_cpp11()</code> adapt it to the framework’s C++ exception</td>
+<td>N/A</td>
+</tr>
+<tr class="even">
+<td><code>charvec</code> C constructor</td>
+<td>N/A</td>
+<td>R error; crosses the <code>charport</code> package boundary</td>
+</tr>
+</tbody>
+</table>
+<p>An empty Reader can be initialized after its C++ lifetime has begun:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader input<span class="op">;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>input<span class="op">.</span>reset<span class="op">(</span>x<span class="op">);</span></span></code></pre></div>
+<p><code>reset()</code> uses ordinary R error semantics. If resolution fails, the Reader keeps its current borrow. A successful reset releases that borrow and adopts the new one.</p>
+<h3 id="rcpp-and-cpp11-adapters"><code>Rcpp</code> and <code>cpp11</code> adapters</h3>
+<p><code>Rcpp</code> and <code>cpp11</code> code can request framework adapters explicitly for Reader construction and Builder conversion:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Rcpp.h&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader input <span class="op">=</span> charport<span class="op">::</span>Reader<span class="op">::</span>with_rcpp<span class="op">(</span>x<span class="op">);</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>charvec<span class="op">::</span>Builder output<span class="op">(</span>input<span class="op">.</span>size<span class="op">());</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Fill output.</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>SEXP result <span class="op">=</span> output<span class="op">.</span>to_sexp_with_rcpp<span class="op">();</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cpp11.hpp&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader input <span class="op">=</span> charport<span class="op">::</span>Reader<span class="op">::</span>with_cpp11<span class="op">(</span>x<span class="op">);</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>charvec<span class="op">::</span>Builder output<span class="op">(</span>input<span class="op">.</span>size<span class="op">());</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Fill output.</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>SEXP result <span class="op">=</span> output<span class="op">.</span>to_sexp_with_cpp11<span class="op">();</span></span></code></pre></div>
+<p>The framework header must come first. The Reader adapter protects the resolution operation, while the Builder adapter protects the terminal conversion to an R object. Each preserves the original R condition in the exception form expected by that framework.</p>
+<h3 id="manual-error-handling">Manual error handling</h3>
+<p>A C++ package that doesn’t use <code>Rcpp</code> or <code>cpp11</code> must supply its own error handling around any R call for correctness, not just for <code>charport</code> but in general. R provides <code>R_UnwindProtect()</code> as the low-level mechanism for running cleanup during an R error.</p>
+<h3 id="reader-access-exceptions">Reader access exceptions</h3>
+<p>Status conversion is not a bounds check. Callers must supply nonnegative, in-range indices and sizes; an empty range may start at <code>Reader::size()</code>. <code>Reader</code> and the providers shipped with <code>charport</code> do not validate these bounds. A provider that chooses to validate may report <code>CHARPORT_STATUS_OUT_OF_RANGE</code>.</p>
+<p>During access calls, e.g., <code>Reader::views()</code>, the Reader may be unable to provide those views. This is a return status code in C and an exception in C++.</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 25%">
+<col style="width: 36%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>C return status</th>
+<th>Meaning</th>
+<th>C++ exception</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CHARPORT_STATUS_OK</code></td>
+<td>The output arrays were filled successfully.</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td><code>CHARPORT_STATUS_ERROR</code> or any other nonzero status</td>
+<td>The access failed for another reason.</td>
+<td><code>std::runtime_error</code></td>
+</tr>
+<tr class="odd">
+<td><code>CHARPORT_STATUS_NO_MEMORY</code></td>
+<td>Native allocation failed.</td>
+<td><code>std::bad_alloc</code></td>
+</tr>
+<tr class="even">
+<td><code>CHARPORT_STATUS_OUT_OF_RANGE</code></td>
+<td>The provider rejected an index or range.</td>
+<td><code>std::out_of_range</code></td>
+</tr>
+</tbody>
+</table>
+<p>An access failure does not invalidate the Reader or make the error sticky. The provider state stays available for another access and for <code>release</code>. Whether a later access succeeds depends on the provider. When <code>concurrent_access()</code> is true, multiple worker threads can fail without sharing error state.</p>
+<h3 id="builder-conversion">Builder conversion</h3>
+<p><code>charvec::Builder</code> and its variants allocate and own their own <code>Store</code> during the C++ construction phase. Building the string data is standard C++ and may raise a C++ exception.</p>
+<p><code>Builder::to_sexp()</code> cannot throw a C++ exception, but since it creates the ALTREP object that contains the <code>Store</code>, it may theoretically raise an R allocation error. A caller that wants framework cleanup can use the named adapters:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>SEXP rcpp_out <span class="op">=</span> builder<span class="op">.</span>to_sexp_with_rcpp<span class="op">();</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>SEXP cpp11_out <span class="op">=</span> builder<span class="op">.</span>to_sexp_with_cpp11<span class="op">();</span></span></code></pre></div>
+<h2 id="registration-of-altrep-classes">Registration of ALTREP classes</h2>
+<p>Registering an ALTREP class requires several callbacks and lifecycle guarantees. A producer should meet the following contracts in order to make sure the consumer can always properly recover from errors and clean up resources.</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Producer part</th>
+<th>Failure mechanism</th>
+<th>Producer obligation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>init(SEXP)</code></td>
+<td>R error</td>
+<td>Any C++ exception must be converted to an R error.</td>
+</tr>
+<tr class="even">
+<td>Range and indexed access</td>
+<td>Integer status</td>
+<td>Should not call R. C++ exceptions should be converted to nonzero status codes. Return <code>CHARPORT_STATUS_OK</code> only after filling the outputs.</td>
+</tr>
+<tr class="odd">
+<td><code>release(state)</code></td>
+<td>None</td>
+<td>If supplied, should not be able to produce an R error or C++ exception.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+</body></html>

@@ -1,0 +1,111 @@
+---
+title: "Error Handling"
+format:
+  html:
+    theme:
+      light: flatly
+      dark: [darkly, darkly-fixes.scss]
+
+respect-user-color-scheme: true
+format-links: false
+vignette: >
+  %\VignetteIndexEntry{Charport Error Handling}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Overview
+
+R packages with compiled code have several error mechanisms that do not always work well together: C++ exceptions, C-style errors, and R errors. No single mechanism is safe and idiomatic in every context. The design in `charport` does not try to put all of these error mechanisms into a single system, but instead tries to be parsimonious, only allowing errors to propagate based on the code and boundaries they interact with.
+
+Operations that call R or construct R objects use R errors, because those operations can already fail through R. Pure C++ operations use standard C++ exceptions, while C access callbacks return C-style integer error codes.
+
+## Reader and Builder
+
+| Part | C++ error handling | C error handling |
+|------------------------|------------------------|------------------------|
+| Reader construction | Empty construction has no error. `Reader(SEXP)` uses R errors; `with_rcpp()` and `with_cpp11()` adapt construction to the framework's C++ exception | R error |
+| Reader reset | `reset(SEXP)` uses R errors. If resolution fails, the Reader keeps its current borrow. | R error |
+| Reader access | Standard C++ exception | Integer status |
+| Reader destruction | None | None |
+| Builder construction | Standard C++ exception | N/A |
+| Builder string append | Standard C++ exception | N/A |
+| Builder `to_sexp()` | R error; `to_sexp_with_rcpp()` and `to_sexp_with_cpp11()` adapt it to the framework's C++ exception | N/A |
+| `charvec` C constructor | N/A | R error; crosses the `charport` package boundary |
+
+An empty Reader can be initialized after its C++ lifetime has begun:
+
+``` cpp
+charport::Reader input;
+input.reset(x);
+```
+
+`reset()` uses ordinary R error semantics. If resolution fails, the Reader keeps its current borrow. A successful reset releases that borrow and adopts the new one.
+
+### `Rcpp` and `cpp11` adapters
+
+`Rcpp` and `cpp11` code can request framework adapters explicitly for Reader construction and Builder conversion:
+
+``` cpp
+#include <Rcpp.h>
+#include "charport.h"
+
+charport::Reader input = charport::Reader::with_rcpp(x);
+
+charport::charvec::Builder output(input.size());
+// Fill output.
+SEXP result = output.to_sexp_with_rcpp();
+```
+
+``` cpp
+#include <cpp11.hpp>
+#include "charport.h"
+
+charport::Reader input = charport::Reader::with_cpp11(x);
+
+charport::charvec::Builder output(input.size());
+// Fill output.
+SEXP result = output.to_sexp_with_cpp11();
+```
+
+The framework header must come first. The Reader adapter protects the resolution operation, while the Builder adapter protects the terminal conversion to an R object. Each preserves the original R condition in the exception form expected by that framework.
+
+### Manual error handling
+
+A C++ package that doesn't use `Rcpp` or `cpp11` must supply its own error handling around any R call for correctness, not just for `charport` but in general. R provides `R_UnwindProtect()` as the low-level mechanism for running cleanup during an R error.
+
+### Reader access exceptions
+
+Status conversion is not a bounds check. Callers must supply nonnegative, in-range indices and sizes; an empty range may start at `Reader::size()`. `Reader` and the providers shipped with `charport` do not validate these bounds. A provider that chooses to validate may report `CHARPORT_STATUS_OUT_OF_RANGE`.
+
+During access calls, e.g., `Reader::views()`, the Reader may be unable to provide those views. This is a return status code in C and an exception in C++.
+
+| C return status | Meaning | C++ exception |
+|----------------------------|------------------|--------------------------|
+| `CHARPORT_STATUS_OK` | The output arrays were filled successfully. | None |
+| `CHARPORT_STATUS_ERROR` or any other nonzero status | The access failed for another reason. | `std::runtime_error` |
+| `CHARPORT_STATUS_NO_MEMORY` | Native allocation failed. | `std::bad_alloc` |
+| `CHARPORT_STATUS_OUT_OF_RANGE` | The provider rejected an index or range. | `std::out_of_range` |
+
+An access failure does not invalidate the Reader or make the error sticky. The provider state stays available for another access and for `release`. Whether a later access succeeds depends on the provider. When `concurrent_access()` is true, multiple worker threads can fail without sharing error state.
+
+### Builder conversion
+
+`charvec::Builder` and its variants allocate and own their own `Store` during the C++ construction phase. Building the string data is standard C++ and may raise a C++ exception.
+
+`Builder::to_sexp()` cannot throw a C++ exception, but since it creates the ALTREP object that contains the `Store`, it may theoretically raise an R allocation error. A caller that wants framework cleanup can use the named adapters:
+
+``` cpp
+SEXP rcpp_out = builder.to_sexp_with_rcpp();
+SEXP cpp11_out = builder.to_sexp_with_cpp11();
+```
+
+## Registration of ALTREP classes
+
+Registering an ALTREP class requires several callbacks and lifecycle guarantees. A producer should meet the following contracts in order to make sure the consumer can always properly recover from errors and clean up resources.
+
+| Producer part | Failure mechanism | Producer obligation |
+|------------------------|------------------------|------------------------|
+| `init(SEXP)` | R error | Any C++ exception must be converted to an R error. |
+| Range and indexed access | Integer status | Should not call R. C++ exceptions should be converted to nonzero status codes. Return `CHARPORT_STATUS_OK` only after filling the outputs. |
+| `release(state)` | None | If supplied, should not be able to produce an R error or C++ exception. |

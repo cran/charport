@@ -1,0 +1,9 @@
+useDynLib(charport, .registration = TRUE)
+
+export("charvec")
+export("as_charvec")
+export("is_charvec")
+export("charport_materialize")
+export("charport_classes")
+export("charport_info")
+export("charport_class_of")

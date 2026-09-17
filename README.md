@@ -1,0 +1,86 @@
+# charport <img src="man/figures/logo.svg" alt="charport logo" align="right" width="160" />
+
+
+<a href="https://github.com/charbase/charport/actions"><img src="https://github.com/charbase/charport/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check status"/></a>
+
+**ALTREP string interoperability**
+
+R’s ALTREP system lets packages represent string data more efficiently.
+But acrosses packages, ALTREP vectors usually *materialize* back into
+ordinary R strings, and that step can be costly.
+
+`charport` is an experimental package with the goal of removing that
+materialization cost by making ALTREP strings interoperable. The hope is
+that ALTREP strings become more than package-local optimization and
+become shared infrastructure.
+
+*This work is supported by the R Consortium Infrastructure Steering
+Committee, under the grant Universal ALTREP Interoperability for
+Strings.*
+
+## ALTREP string access
+
+The diagram below shows the base R access path and the `charport` path
+side by side.
+
+![](man/figures/altrep-string-access.svg)
+
+Both start from an ALTREP vector from a producer package. On the base R
+path, the consumer accesses strings through the R API; work is done to
+materialize ALTREP strings into ordinary R strings. On the `charport`
+path, the consumer opens a `charport::Reader` on the same vector, and
+the producer hands back a read-only view of the string data. The extra
+materialization work can be avoided.
+
+The benchmark below runs these paths on the `enwik8` dataset, the first
+1E8 bytes of Wikipedia. The benchmark asks: how much is avoiding
+materialization worth?
+
+![](man/figures/bench.png)
+
+These measurements show order-of-magnitude performance improvements are
+possible by working with ALTREP strings end-to-end. The figure shows the
+serial case. Because ALTREP classes do not rely on R memory, parallel
+construction and access can improve on these numbers.
+
+## A broker for ALTREP strings
+
+`charport` acts as a small broker for ALTREP strings:
+
+1.  A producer package registers its ALTREP string class via
+    `register_altrep`.
+2.  A consumer package accesses string data through `charport::Reader`.
+3.  Registered ALTREP classes can be read directly; ordinary vectors and
+    unregistered ALTREP classes fall back to standard R behavior.
+
+The interface is intended to be minimal and safe. It is available for
+both C++ and C.
+
+## `charvec`: a reference ALTREP character vector
+
+`charport` also includes `charvec`, which stores string data in large
+data blocks.
+
+To R, a `charvec` behaves like an ordinary character vector. In compiled
+code, a `charvec` can be constructed serially or across multiple worker
+threads, then read through `charport::Reader` without materialization.
+
+It serves as both a reference implementation and an efficient
+general-purpose class.
+
+## Integration into packages
+
+Package authors can use `charport` from either side of the interface.
+
+The developer guide covers registration, string access, fallback
+behavior, pointer lifetime, thread safety, and the `charvec` builder.
+
+- [Package developer
+  guide](https://charbase.github.io/charport/articles/developer-guide.html),
+  also listed by `utils::vignette(package = "charport")`.
+- [Error
+  handling](https://charbase.github.io/charport/articles/error-handling.html),
+  for a deeper dive into error handling.
+- [Design
+  rationale](https://charbase.github.io/charport/articles/design-rationale.html),
+  for an explanation of design choices in this package.

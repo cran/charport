@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Charport Package Developer Guide</title>
+<style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+width: 0.8em;
+margin: 0 0.8em 0.2em -1em;  vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+}
+pre.numberSource { margin-left: 3em; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+</style>
+</head>
+
+<body>
+
+
+<header id="title-block-header">
+<h1 class="title">Charport Package Developer Guide</h1>
+
+</header>
+
+
+<h2 id="overview">Overview</h2>
+<p>At its core, <code>charport</code> is a small contract between ALTREP producer and consumer packages. ALTREP producers expose byte views to other packages using one safe read-only interface, and consumers read those byte views from the other side of the interface. A package can register ALTREP strings, consume ALTREP strings, or use <code>charvec</code>, a built-in ALTREP class, directly. The diagram below shows how those roles are organized in this package.</p>
+<p><img role="img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDgwIDU4MCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InRpdGxlIGRlc2MiPgogIDx0aXRsZSBpZD0idGl0bGUiPmNoYXJwb3J0IGRldmVsb3BlciBpbnRlZ3JhdGlvbiBtYXA8L3RpdGxlPgogIDxkZXNjIGlkPSJkZXNjIj5BIHRlY2huaWNhbCBmbG93Y2hhcnQgc2hvd2luZyBhIHByb2R1Y2VyIHBhY2thZ2UgcmVnaXN0ZXJpbmcgYW4gQUxUUkVQIGNsYXNzIG9yIHVzaW5nIGNoYXJ2ZWMsIGNoYXJwb3J0IHN0b3JpbmcgcmVnaXN0cmF0aW9ucywgYW5kIGEgY29uc3VtZXIgcGFja2FnZSByZWFkaW5nIHRocm91Z2ggY2hhcnBvcnQ6OlJlYWRlci48L2Rlc2M+CiAgPCEtLQogICAgVGhlbWUtc2FmZSBwYWxldHRlIChzaGFyZWQgd2l0aCBhbHRyZXAtc3RyaW5nLWFjY2VzcykuIFRyYW5zcGFyZW50CiAgICBiYWNrZ3JvdW5kOyBldmVyeSBsYWJlbCByaWRlcyBvbiBhIHdoaXRlIG9yIGxhdmVuZGVyIGZpbGwuIFRoZSBjaGFycG9ydAogICAgaHViIGNvbHVtbiBjYXJyaWVzIGEgdHJhbnNsdWNlbnQgbGF2ZW5kZXIgd2FzaCAoZmlsbC1vcGFjaXR5KSBzbyBpdCByZWFkcwogICAgYXMgYSBzb2Z0IGFjY2VudCBvbiBib3RoIGxpZ2h0IGFuZCBkYXJrIHBhZ2VzIHdpdGhvdXQgYSBiYWtlZCBiYWNrZ3JvdW5kLgogICAgICBpbmsgIzJjMWY1NyDCtyBkZWVwICMzYTJhNzggwrcgZWRnZSAjNmE0ZmE2IMK3IGxpbmUgIzg2NzBiZgogICAgICBtdXRlZCAjNmQ1ZmEwIMK3IHdhc2ggI2VmZTlmYS8jZTJkOGY0IMK3IGh1Yndhc2ggI2E4OTJkOEAwLjEyCiAgLS0+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5sYW5lICAgeyBmaWxsOiAjZmZmZmZmOyBzdHJva2U6ICM2YTRmYTY7IHN0cm9rZS13aWR0aDogMS42OyB9CiAgICAgIC5sYWJlbCAgeyBmaWxsOiAjMmMxZjU3OyBmb250OiA2NTAgMTZweCBJbnRlciwgQXZlbmlyLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOyB9CiAgICAgIC5tb25vICAgeyBmaWxsOiAjMmMxZjU3OyBmb250OiA2NTAgMTVweCB1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgQ29uc29sYXMsIG1vbm9zcGFjZTsgfQogICAgICAubXV0ZWQgIHsgZmlsbDogIzZkNWZhMDsgZm9udDogNjAwIDE0cHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuY29sICAgIHsgZmlsbDogIzJjMWY1NzsgZm9udDogNzAwIDE4cHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuaHVidHRsIHsgZmlsbDogI2ZmZmZmZjsgZm9udDogNzUwIDIxcHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuYXJyb3cgIHsgZmlsbDogbm9uZTsgc3Ryb2tlOiAjODY3MGJmOyBzdHJva2Utd2lkdGg6IDEuNzsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOyBzdHJva2UtbGluZWpvaW46IHJvdW5kOyBtYXJrZXItZW5kOiB1cmwoI2Fycm93KTsgfQogICAgICAuZWxhYmVsIHsgZmlsbDogIzJjMWY1NzsgZm9udDogNjUwIDE0cHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuZWNoaXAgIHsgZmlsbDogI2ZmZmZmZjsgc3Ryb2tlOiAjODY3MGJmOyBzdHJva2Utd2lkdGg6IDEuMjsgfQogICAgPC9zdHlsZT4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0id2FzaCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlZmU5ZmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTJkOGY0Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkZWVwd2FzaCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM0YTM2OTAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzUyNTc1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyb3ciIG1hcmtlcldpZHRoPSI5IiBtYXJrZXJIZWlnaHQ9IjkiIHJlZlg9IjcuNSIgcmVmWT0iNC41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEw5IDQuNSBMMCA5IFoiIGZpbGw9IiM4NjcwYmYiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB4PSI0MCIgeT0iMzQiIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjUxMiIgcng9IjIyIiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNiOWE5ZGYiIHN0cm9rZS13aWR0aD0iMi4yIi8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwzMCkiPgoKICA8IS0tIGh1YiBhY2NlbnQgY29sdW1uICh0cmFuc2x1Y2VudCwgYWRhcHRzIHRvIHBhZ2UgYmFja2dyb3VuZCkgLS0+CiAgPHJlY3QgeD0iMzU2IiB5PSIyOCIgd2lkdGg9IjM2OCIgaGVpZ2h0PSI0NjYiIHJ4PSIxOCIgZmlsbD0iI2E4OTJkOCIgZmlsbC1vcGFjaXR5PSIwLjEyIi8+CgogIDwhLS0gY29sdW1uIGhlYWRlcnMgLS0+CiAgPHJlY3QgeD0iMTA0IiB5PSI0MCIgd2lkdGg9IjE1MiIgaGVpZ2h0PSI0MCIgcng9IjIwIiBmaWxsPSJ1cmwoI3dhc2gpIiBzdHJva2U9IiNiOWE5ZGYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMTgwIiB5PSI2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImNvbCI+cHJvZHVjZXJwa2c8L3RleHQ+CiAgPHJlY3QgeD0iNDYyIiB5PSIzOCIgd2lkdGg9IjE1NiIgaGVpZ2h0PSI0NCIgcng9IjIyIiBmaWxsPSJ1cmwoI2RlZXB3YXNoKSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iNjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJodWJ0dGwiPmNoYXJwb3J0PC90ZXh0PgogIDxyZWN0IHg9IjgyNCIgeT0iNDAiIHdpZHRoPSIxNTIiIGhlaWdodD0iNDAiIHJ4PSIyMCIgZmlsbD0idXJsKCN3YXNoKSIgc3Ryb2tlPSIjYjlhOWRmIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjkwMCIgeT0iNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJjb2wiPmNvbnN1bWVycGtnPC90ZXh0PgoKICA8IS0tIHByb2R1Y2VyIG5vZGVzIC0tPgogIDxyZWN0IHg9IjcwIiB5PSIxMTYiIHdpZHRoPSIyMjAiIGhlaWdodD0iODIiIHJ4PSIxMCIgY2xhc3M9ImxhbmUiLz4KICA8dGV4dCB4PSIxODAiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5QYWNrYWdlLXNwZWNpZmljPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPkFMVFJFUCBjbGFzczwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5vd25zIHN0b3JhZ2UgbGF5b3V0PC90ZXh0PgoKICA8cmVjdCB4PSI3MCIgeT0iMjU2IiB3aWR0aD0iMjIwIiBoZWlnaHQ9Ijc4IiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iMTgwIiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtb25vIj5yZWdpc3Rlcl9hbHRyZXAoKTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5pbml0IC8gZ2V0IC8gcmVsZWFzZTwvdGV4dD4KCiAgPHJlY3QgeD0iNzAiIHk9IjM4OCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI1MiIgcng9IjEwIiBjbGFzcz0ibGFuZSIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPnVzZSBjaGFydmVjIGRpcmVjdGx5PC90ZXh0PgoKICA8IS0tIGh1YiBub2RlcyAtLT4KICA8cmVjdCB4PSI0MTAiIHk9IjExNiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI5NiIgcng9IjEwIiBjbGFzcz0ibGFuZSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMTQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPlJlZ2lzdHJ5PC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibXV0ZWQiPkFMVFJFUCBjbGFzcyAmIzg1OTQ7IHJlYWQgbWV0aG9kczwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjE5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj52aWV3IGd1YXJhbnRlZXMgKyByZWxlYXNlIGhvb2s8L3RleHQ+CgogIDxyZWN0IHg9IjQxMCIgeT0iMjcwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjcyIiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+Y2hhcnZlYzwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjMyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5idWlsdC1pbiByZWdpc3RlcmVkIGNsYXNzPC90ZXh0PgoKICA8IS0tIGNvbnN1bWVyIG5vZGVzIC0tPgogIDxyZWN0IHg9Ijc5MCIgeT0iMTE2IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjgyIiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iOTAwIiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtb25vIj5jaGFycG9ydDo6UmVhZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibXV0ZWQiPmNvbnN0cnVjdGVkIGZyb20gU0VYUDwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5yZXNvbHZlcyByZWFkIHBhdGggb25jZTwvdGV4dD4KCiAgPHJlY3QgeD0iNzkwIiB5PSIyNTYiIHdpZHRoPSIyMjAiIGhlaWdodD0iOTYiIHJ4PSIxMCIgY2xhc3M9ImxhbmUiLz4KICA8dGV4dCB4PSI5MDAiIHk9IjI4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im1vbm8iPlN0clZpZXc8L3RleHQ+CiAgPHRleHQgeD0iOTAwIiB5PSIzMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtdXRlZCI+cHRyICsgbGVuICsgZW5jPC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iMzMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibXV0ZWQiPihub24tbWF0ZXJpYWxpemluZyk8L3RleHQ+CgogIDxyZWN0IHg9Ijc5MCIgeT0iMzg4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjUyIiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iOTAwIiB5PSI0MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+Q29uc3VtZXIgYWxnb3JpdGhtPC90ZXh0PgoKICA8IS0tIGVkZ2VzIC0tPgogIDxwYXRoIGQ9Ik0xODAgMTk4IFYyNTIiIGNsYXNzPSJhcnJvdyIvPgogIDxwYXRoIGQ9Ik0yOTAgMjk1IEMzNDUgMjk1IDM0NiAxNjQgNDAyIDE2NCIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iMzEzIiB5PSIyMjEiIHdpZHRoPSI2OCIgaGVpZ2h0PSIyMyIgcng9IjciIGNsYXNzPSJlY2hpcCIvPgogIDx0ZXh0IHg9IjM0NyIgeT0iMjM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZWxhYmVsIj5SZWdpc3RlcjwvdGV4dD4KCiAgPHRleHQgeD0iMTgwIiB5PSIzNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtdXRlZCI+b3I8L3RleHQ+CiAgPHBhdGggZD0iTTI5MCA0MTQgQzM0NSA0MTQgMzQ2IDMwNiA0MDIgMzA2IiBjbGFzcz0iYXJyb3ciLz4KCiAgPHBhdGggZD0iTTkwMCAxOTggVjI1MiIgY2xhc3M9ImFycm93Ii8+CiAgPHBhdGggZD0iTTkwMCAzNTIgVjM4MiIgY2xhc3M9ImFycm93Ii8+CgogIDxwYXRoIGQ9Ik03OTAgMTU2IEg2NzgiIGNsYXNzPSJhcnJvdyIvPgogIDxyZWN0IHg9IjcwMSIgeT0iMTI4IiB3aWR0aD0iNjQiIGhlaWdodD0iMjMiIHJ4PSI3IiBjbGFzcz0iZWNoaXAiLz4KICA8dGV4dCB4PSI3MzMiIHk9IjE0NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImVsYWJlbCI+cmVzb2x2ZTwvdGV4dD4KCiAgPHBhdGggZD0iTTY3MCAxNzAgSDc4MiIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iNjc4IiB5PSIxNzUiIHdpZHRoPSI5NiIgaGVpZ2h0PSIyMyIgcng9IjciIGNsYXNzPSJlY2hpcCIvPgogIDx0ZXh0IHg9IjcyNiIgeT0iMTkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZWxhYmVsIj5yZWFkIG1ldGhvZHM8L3RleHQ+CgogIDxwYXRoIGQ9Ik01NDAgMjcwIFYyMTYiIGNsYXNzPSJhcnJvdyIvPgogIDwvZz4KPC9zdmc+Cg=="></p>
+<p>The guide goes through three main use cases:</p>
+<ul>
+<li><a href="#universal-reader">Using the Universal Reader</a>: read ALTREP strings through one C++ interface.</li>
+<li><a href="#altrep-registration">Registering an ALTREP Class</a>: make an ALTREP string class readable by other packages through <code>charport</code>.</li>
+<li><a href="#charvec-direct">Using <code>charvec</code> Directly</a>: use the built-in <code>charvec</code> ALTREP class directly with serial or multithreaded builders.</li>
+</ul>
+<p><code>charport</code> can be used from C or from C++11 and later. Its error model was designed and tested with particular care so that R errors and C++ exceptions are propagated properly from both languages. This guide explains the relevant rules alongside the APIs they govern; the <a href="error-handling.html">Error handling</a> vignette gives a more complete design and rationale.</p>
+<h2 id="linking-to-charport">Linking to <code>charport</code></h2>
+<p>In <code>DESCRIPTION</code>, declare both the runtime dependency and the header dependency:</p>
+<pre class="text"><code>Imports:
+    charport
+LinkingTo:
+    charport</code></pre>
+<p>In <code>NAMESPACE</code>, import <code>charport</code> so its runtime entry points are available:</p>
+<h3 id="namespace-setup">Namespace Setup</h3>
+<div class="panel-tabset">
+<ul id="tabset-1" class="panel-tabset-tabby"><li><a data-tabby-default href="#tabset-1-1">roxygen2</a></li><li><a href="#tabset-1-2">NAMESPACE</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1">
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @useDynLib ExamplePackage, .registration = TRUE</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&#39; @import charport</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;_PACKAGE&quot;</span></span></code></pre></div>
+</div>
+<div id="tabset-1-2">
+<pre class="text"><code>useDynLib(ExamplePackage, .registration = TRUE)
+import(charport)</code></pre>
+</div>
+</div>
+</div>
+<p>There is one public header: <code>charport.h</code>. If you use <code>Rcpp</code> or <code>cpp11</code>, you should include that framework’s header first.</p>
+<p>The same header can be included from C. Its C interface exposes ABI checks, reader borrows, vector inspection, and complete-vector <code>charvec</code> construction through R’s <code>R_GetCCallable()</code>. C++ packages also get the <code>Reader</code> class, <code>charvec</code> builders, and ALTREP registration. The C++ interface requires C++11 or higher.</p>
+<p>The main entry points have direct C and C++ counterparts:</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>C</th>
+<th>C++</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Check the loaded ABI</td>
+<td><code>charport_abi_version() == CHARPORT_ABI_VERSION</code></td>
+<td><code>charport::check_abi()</code></td>
+</tr>
+<tr class="even">
+<td>Acquire a reader borrow</td>
+<td><code>charport_resolve(x)</code></td>
+<td><code>charport::Reader(x)</code></td>
+</tr>
+<tr class="odd">
+<td>Release a raw reader borrow</td>
+<td><code>charport_reader_release(&amp;reader)</code></td>
+<td>RAII destruction in <code>charport::Reader</code></td>
+</tr>
+<tr class="even">
+<td>Inspect a string vector</td>
+<td><code>charport_get_sexp_info(x)</code></td>
+<td><code>charport::sexp_info(x)</code></td>
+</tr>
+<tr class="odd">
+<td>Build a <code>charvec</code></td>
+<td><code>charport_charvec_from_views(...)</code></td>
+<td><code>charvec::Builder</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="universal-reader">Using the Universal Reader</h2>
+<p>The universal reader provides the same read-only interface for both ordinary (non-ALTREP) strings and ALTREP strings. For ordinary strings, there is no per-element overhead. The C++ class <code>charport::Reader</code> is a class wrapper around the C struct <code>charport_reader</code>. The C++ class can be constructed as follows:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader reader<span class="op">(</span>robj<span class="op">);</span> <span class="co">// use if you do not use Rcpp or cpp11</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader rcpp_reader <span class="op">=</span> charport<span class="op">::</span>Reader<span class="op">::</span>with_rcpp<span class="op">(</span>robj<span class="op">);</span> <span class="co">// use if your package uses Rcpp; include Rcpp.h first</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader cpp11_reader <span class="op">=</span> charport<span class="op">::</span>Reader<span class="op">::</span>with_cpp11<span class="op">(</span>robj<span class="op">);</span> <span class="co">// use if your package uses cpp11; include cpp11.hpp first</span></span></code></pre></div>
+<p>Since the reader constructor calls into R, it can generate an R error (for example, if you pass an <code>INTSXP</code> instead of a <code>STRSXP</code>). Therefore, the three C++ constructors differ in error handling. The first generic constructor allows the R error to propagate, and the caller should handle it manually. The <code>with_rcpp</code> constructor wraps the R error in <code>Rcpp::unwindProtect</code> and uses <code>Rcpp</code>’s unwind mechanics. Similarly, the <code>with_cpp11</code> constructor wraps the R error in <code>cpp11::unwind_protect</code>. Other than error handling they behave identically.</p>
+<p>A Reader can also be created without a borrow and initialized later with <code>reset()</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader reader<span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>reader<span class="op">.</span>reset<span class="op">(</span>robj<span class="op">);</span></span></code></pre></div>
+<p>This form lets a caller place the Reader in an outer C++ scope before resolving the input. <code>reset()</code> follows the same R error policy as <code>Reader(robj)</code>. A successful reset replaces the current borrow. If resolution raises an R error, the existing borrow remains unchanged. Do not use the access methods before the first successful reset.</p>
+<p>The corresponding C structure is <code>charport_reader</code> initialized with <code>charport_resolve()</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>charport_reader c_reader <span class="op">=</span> charport_resolve<span class="op">(</span>robj<span class="op">);</span></span></code></pre></div>
+<p>Unlike <code>charport::Reader</code>, this is an ordinary struct with no class methods. <code>charport_resolve()</code> can generate an R error.</p>
+<p>Every successful <code>charport_resolve()</code> should be paired with <code>charport_reader_release()</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>charport_reader_release<span class="op">(&amp;</span>c_reader<span class="op">);</span></span></code></pre></div>
+<h3 id="range-access">Range Access</h3>
+<p>Range access is the main path for processing a full vector or a contiguous chunk. The pattern below demonstrates two access patterns for reading pointer and length for each string.</p>
+<div class="panel-tabset">
+<ul id="tabset-2" class="panel-tabset-tabby"><li><a data-tabby-default href="#tabset-2-1">C++ example</a></li><li><a href="#tabset-2-2">C example</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1">
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">void</span> process_strings_impl<span class="op">(</span>SEXP x<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  charport<span class="op">::</span>Reader input<span class="op">(</span>x<span class="op">);</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">const</span> <span class="dt">R_xlen_t</span> n <span class="op">=</span> input<span class="op">.</span>size<span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  charport<span class="op">::</span>ByteViews values<span class="op">(</span>n<span class="op">);</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  input<span class="op">.</span>byteviews<span class="op">(</span><span class="dv">0</span><span class="op">,</span> n<span class="op">,</span> values<span class="op">);</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">const</span> <span class="dt">char</span> <span class="op">**</span> ptrs <span class="op">=</span> values<span class="op">.</span>ptrs<span class="op">();</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">const</span> <span class="dt">int</span> <span class="op">*</span> lengths <span class="op">=</span> values<span class="op">.</span>lengths<span class="op">();</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span><span class="op">(</span><span class="dt">R_xlen_t</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> n<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>lengths<span class="op">[</span>i<span class="op">]</span> <span class="op">!=</span> NA_INTEGER<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>      <span class="co">// use ptrs and lengths arrays</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    charport<span class="op">::</span>ByteView el <span class="op">=</span> values<span class="op">[</span>i<span class="op">];</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Process el.ptr and el.len</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+</div>
+<div id="tabset-2-2">
+<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> process_strings_impl<span class="op">(</span>SEXP x<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  charport_reader input <span class="op">=</span> charport_resolve<span class="op">(</span>x<span class="op">);</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">const</span> R_xlen_t n <span class="op">=</span> input<span class="op">.</span>n<span class="op">;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">const</span> <span class="dt">char</span> <span class="op">**</span> ptrs <span class="op">=</span> <span class="op">(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">**)</span> malloc<span class="op">((</span><span class="dt">size_t</span><span class="op">)</span> n <span class="op">*</span> <span class="kw">sizeof</span> <span class="op">*</span>ptrs<span class="op">);</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> <span class="op">*</span> lengths <span class="op">=</span> <span class="op">(</span><span class="dt">int</span> <span class="op">*)</span> malloc<span class="op">((</span><span class="dt">size_t</span><span class="op">)</span> n <span class="op">*</span> <span class="kw">sizeof</span> <span class="op">*</span>lengths<span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> status <span class="op">=</span> input<span class="op">.</span>range<span class="op">.</span>byteviews<span class="op">(</span>input<span class="op">.</span>state<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> n<span class="op">,</span> ptrs<span class="op">,</span> lengths<span class="op">);</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span><span class="op">(</span>status <span class="op">!=</span> CHARPORT_STATUS_OK<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    free<span class="op">(</span>lengths<span class="op">);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    free<span class="op">(</span>ptrs<span class="op">);</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    charport_reader_release<span class="op">(&amp;</span>input<span class="op">);</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    Rf_error<span class="op">(</span><span class="st">&quot;charport reader access failed with status </span><span class="sc">%d</span><span class="st">&quot;</span><span class="op">,</span> status<span class="op">);</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span><span class="op">(</span>R_xlen_t i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> n<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span><span class="op">(</span>lengths<span class="op">[</span>i<span class="op">]</span> <span class="op">!=</span> NA_INTEGER<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>      <span class="co">/* Process ptrs[i] and lengths[i]. */</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  free<span class="op">(</span>lengths<span class="op">);</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  free<span class="op">(</span>ptrs<span class="op">);</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  charport_reader_release<span class="op">(&amp;</span>input<span class="op">);</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+</div>
+</div>
+</div>
+<p>Missing strings are reported as <code>ptr = nullptr</code> and <code>len = NA_INTEGER</code>. String pointers are <strong>not guaranteed to be null-terminated</strong>, so always read pointer and length together.</p>
+<p>Besides <code>byteviews()</code>, there are several additional access methods:</p>
+<ul>
+<li><code>views()</code> reads pointers, byte lengths, and encoding marks.</li>
+<li><code>lengths()</code> reads byte lengths only.</li>
+<li><code>encodings()</code> reads encoding marks only.</li>
+</ul>
+<p>Each method has range, indexed, and scalar forms.</p>
+<h3 id="scalar-reader-access">Scalar Reader Access</h3>
+<p>Scalar methods are convenience functions for single-element reads. For example, to read the first element:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader r<span class="op">(</span>robj<span class="op">);</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>StrView s <span class="op">=</span> r<span class="op">.</span>view<span class="op">(</span><span class="dv">0</span><span class="op">);</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span><span class="op">(!</span>s<span class="op">.</span>is_na<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">// s.ptr, s.len, s.enc</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>r.byteview(i)</code>, <code>r.length(i)</code>, and <code>r.encoding(i)</code> return the narrower scalar forms. <code>operator[]</code> is an alias for <code>r.view(i)</code>.</p>
+<h3 id="indexed-reader-access">Indexed Reader Access</h3>
+<p>Indexed access gathers arbitrary 0-based positions into output arrays. This matches R’s index selection (but is zero-based):</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>Reader r<span class="op">(</span>robj<span class="op">);</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">R_xlen_t</span><span class="op">&gt;</span> idx <span class="op">=</span> <span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">10</span><span class="op">,</span> <span class="dv">20</span><span class="op">};</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>charport<span class="op">::</span>ByteViews byteviews<span class="op">(</span>idx<span class="op">.</span>size<span class="op">());</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>r<span class="op">.</span>byteviews<span class="op">(</span>idx<span class="op">.</span>data<span class="op">(),</span> idx<span class="op">.</span>size<span class="op">(),</span> byteviews<span class="op">);</span> <span class="co">// outputs elements 0, 10 and 20</span></span></code></pre></div>
+<h3 id="encoding">Encoding</h3>
+<p><code>charport</code> passes through the same string encoding information available from base R strings. It doesn’t do any string normalization or reinterpretation; it only makes the encoding marks available as defined by the producer.</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 61%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CETYPE_EXT_NATIVE</code></td>
+<td>Native encoding based on machine locale.</td>
+</tr>
+<tr class="even">
+<td><code>CETYPE_EXT_UTF8</code></td>
+<td>UTF-8.</td>
+</tr>
+<tr class="odd">
+<td><code>CETYPE_EXT_LATIN1</code></td>
+<td>Latin-1.</td>
+</tr>
+<tr class="even">
+<td><code>CETYPE_EXT_BYTES</code></td>
+<td>Bytes encoding.</td>
+</tr>
+<tr class="odd">
+<td><code>CETYPE_EXT_ASCII_OR_UTF8</code></td>
+<td>ASCII/UTF-8-compatible bytes.</td>
+</tr>
+<tr class="even">
+<td><code>CETYPE_EXT_ASCII</code></td>
+<td>ASCII bytes, equivalent to <code>Rf_charIsASCII(x)</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>CETYPE_EXT_NA</code></td>
+<td>Missing string. <code>ptr</code> is <code>NULL</code> and <code>len</code> is <code>NA_INTEGER</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The names are the same in both languages. In C++ they are typed <code>cetype_ext_t</code> constants comparable with <code>==</code>; in C they are plain integers comparable with <code>.value</code>.</p>
+<p>R’s encoding scheme is aggregated into this single type. <code>CETYPE_EXT_ASCII</code>, <code>CETYPE_EXT_ASCII_OR_UTF8</code>, and <code>CETYPE_EXT_NA</code> are simplifications: <code>CETYPE_EXT_ASCII</code> corresponds to the ASCII mark available from <code>Rf_charIsASCII()</code>. In R, the ASCII mark <strong>always</strong> occurs with <code>CETYPE_EXT_NATIVE</code>, so it represents a mutually exclusive state.</p>
+<p><code>CETYPE_EXT_ASCII_OR_UTF8</code> exists because base R materialization always checks whether a string is ASCII, so differentiating ASCII and UTF-8 early is often redundant work.</p>
+<p><code>CETYPE_EXT_NA</code> carries the missing-string case alongside the pointer and length.</p>
+<p>Ordinary <code>cetype_t</code> values correspond to <code>cetype_ext_t</code> values, so you can wrap R’s encoding mark when you already have a <code>cetype_t</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">cetype_ext_t</span> enc <span class="op">=</span> charport_cetype_ext<span class="op">(</span><span class="kw">static_cast</span><span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;(</span>Rf_getCharCE<span class="op">(</span>x<span class="op">)));</span></span></code></pre></div>
+<p>That cast preserves the encoding marks for native, UTF-8, Latin-1 and byte strings.</p>
+<h3 id="reader-lifetime-and-multithreading">Reader Lifetime and Multithreading</h3>
+<p>In Rust terms, initializing the <code>Reader</code> is a strict borrow. The <code>Reader</code> is a temporary view of the vector’s current string storage, valid only while that storage remains protected and unmodified. Access to and modification of the original R object (<code>STRING_ELT</code>, <code>STRING_PTR_RO</code>, <code>DATAPTR_RO</code>, etc.) can invalidate the <code>Reader</code>.</p>
+<p>An exception is attributes; you can handle attributes on the original R object while <code>Reader</code> exists.</p>
+<p><code>Reader</code> makes available several <em>class-specific</em> capability flags related to multithreading and memory lifetime:</p>
+<ul>
+<li><code>persistent_views()</code> means returned pointers remain valid after another <code>Reader</code> call.</li>
+<li><code>concurrent_access()</code> means <code>Reader</code> access may run concurrently on worker threads.</li>
+<li><code>reentrant()</code> is true when both capabilities are available.</li>
+</ul>
+<p>The fallback <code>Reader</code> path (on ordinary R strings) has <code>persistent_views()</code> but not <code>concurrent_access()</code>.</p>
+<h2 id="altrep-registration">Registering an ALTREP Class</h2>
+<p>A package can register its ALTREP class to make non-materializing views available to <code>charport::Reader</code>. Registration can happen directly in package initialization, or from <code>.onLoad()</code>.</p>
+<p>ALTREP registration is a C++ API:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> charport<span class="op">::</span>register_altrep<span class="op">(</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">R_altrep_class_t</span> cls<span class="op">,</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  charport_reader_state_fns state_fns<span class="op">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  charport_reader_range_fns range_fns<span class="op">,</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  charport_reader_index_fns index_fns<span class="op">,</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  charport_reader_capabilities capabilities</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<p>The inputs are grouped structs of related parts:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> charport_reader_state_fns <span class="op">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  charport_reader_init_fn init<span class="op">;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  charport_reader_release_fn release<span class="op">;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> charport_reader_range_fns <span class="op">{</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  charport_reader_strviews_range_fn strviews<span class="op">;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  charport_reader_byteviews_range_fn byteviews<span class="op">;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  charport_reader_lengths_range_fn lengths<span class="op">;</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  charport_reader_encodings_range_fn encodings<span class="op">;</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> charport_reader_index_fns <span class="op">{</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  charport_reader_strviews_index_fn strviews<span class="op">;</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  charport_reader_byteviews_index_fn byteviews<span class="op">;</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  charport_reader_lengths_index_fn lengths<span class="op">;</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  charport_reader_encodings_index_fn encodings<span class="op">;</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> charport_reader_capabilities <span class="op">{</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> persistent_views<span class="op">;</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> concurrent_access<span class="op">;</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p><code>init(SEXP x)</code> starts the reader and returns the state used by the access callbacks. <code>release</code> cleans up that state when the <code>Reader</code> is destroyed and may be <code>nullptr</code> when no cleanup is needed. <code>init</code> should not allow C++ exceptions to fall through, but instead convert them to R errors.</p>
+<p>Returning <code>NULL</code> from <code>init</code> means this particular vector cannot satisfy the reader contract, so <code>charport</code> falls back to default access.</p>
+<p>While <code>charport</code> asks for many callback functions during registration, they are all pretty similar and can be built from the same boilerplate. Range callbacks (<code>charport_reader_range_fns</code>) fill output arrays for the 0-based interval <code>[start, start + size)</code>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> range_strviews<span class="op">(</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span> state<span class="op">,</span> <span class="dt">R_xlen_t</span> start<span class="op">,</span> <span class="dt">R_xlen_t</span> size<span class="op">,</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">char</span> <span class="op">**</span> out_ptrs<span class="op">,</span> <span class="dt">int</span> <span class="op">*</span> out_lens<span class="op">,</span> <span class="dt">cetype_ext_t</span> <span class="op">*</span> out_encs<span class="op">);</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> range_byteviews<span class="op">(</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span> state<span class="op">,</span> <span class="dt">R_xlen_t</span> start<span class="op">,</span> <span class="dt">R_xlen_t</span> size<span class="op">,</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">char</span> <span class="op">**</span> out_ptrs<span class="op">,</span> <span class="dt">int</span> <span class="op">*</span> out_lens<span class="op">);</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> range_lengths<span class="op">(</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span> state<span class="op">,</span> <span class="dt">R_xlen_t</span> start<span class="op">,</span> <span class="dt">R_xlen_t</span> size<span class="op">,</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> <span class="op">*</span> out_lens<span class="op">);</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> range_encodings<span class="op">(</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span> state<span class="op">,</span> <span class="dt">R_xlen_t</span> start<span class="op">,</span> <span class="dt">R_xlen_t</span> size<span class="op">,</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">cetype_ext_t</span> <span class="op">*</span> out_encs<span class="op">);</span></span></code></pre></div>
+<p>Similarly, indexed callbacks (<code>charport_reader_index_fns</code>) take <code>const R_xlen_t * indices</code> in place of <code>start</code>; everything else matches the range forms.</p>
+<p>Bounds are a caller precondition. For a reader of length <code>n</code>, a range request must satisfy <code>0 &lt;= start &lt;= n</code> and <code>0 &lt;= size &lt;= n - start</code>. This admits an empty range at <code>start == n</code> and avoids an overflowing <code>start + size</code> calculation. An indexed request must have a nonnegative <code>size</code>, and every requested index must satisfy <code>0 &lt;= indices[j] &lt; n</code>. Scalar C++ accessors have the same index requirement.</p>
+<p><code>Reader</code> forwards requests without checking these bounds. The providers shipped with <code>charport</code> do not check them either, so an invalid request to a built-in provider has undefined behavior. A provider may validate requests and return <code>CHARPORT_STATUS_OUT_OF_RANGE</code>, but callers cannot rely on that validation.</p>
+<p>Missing strings should be reported as <code>ptr = nullptr</code>, <code>len = NA_INTEGER</code>, and <code>enc = CETYPE_EXT_NA</code>.</p>
+<p>Access callbacks cross a C ABI, so they report errors through the return value. Return <code>CHARPORT_STATUS_OK</code> after filling the outputs. On failure, return a nonzero status. The output arrays are unspecified after failure.</p>
+<p>The other defined status values are:</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CHARPORT_STATUS_ERROR</code></td>
+<td>The access failed for another reason.</td>
+</tr>
+<tr class="even">
+<td><code>CHARPORT_STATUS_NO_MEMORY</code></td>
+<td>Native allocation failed.</td>
+</tr>
+<tr class="odd">
+<td><code>CHARPORT_STATUS_OUT_OF_RANGE</code></td>
+<td>The provider rejected an index or range.</td>
+</tr>
+</tbody>
+</table>
+<p>A C++ provider can translate exceptions using the <code>convert_current_exception_to_status()</code> helper function, which maps C++ exceptions to their corresponding error statuses:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> range_lengths<span class="op">(</span><span class="co">/* callback arguments */</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Fill the output array.</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> CHARPORT_STATUS_OK<span class="op">;</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span> <span class="cf">catch</span><span class="op">(...)</span> <span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> charport<span class="op">::</span>convert_current_exception_to_status<span class="op">();</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>convert_current_exception_to_status()</code> must be called from inside a catch handler. It maps <code>std::bad_alloc</code> to <code>CHARPORT_STATUS_NO_MEMORY</code>, <code>std::out_of_range</code> to <code>CHARPORT_STATUS_OUT_OF_RANGE</code>, and every other exception to <code>CHARPORT_STATUS_ERROR</code>.</p>
+<h3 id="registration-during-package-initialization">Registration during package initialization</h3>
+<p>Register after creating the ALTREP class in the package initialization hook:</p>
+<div class="panel-tabset">
+<ul id="tabset-3" class="panel-tabset-tabby"><li><a data-tabby-default href="#tabset-3-1"><code>Rcpp</code></a></li><li><a href="#tabset-3-2"><code>cpp11</code></a></li></ul>
+<div class="tab-content">
+<div id="tabset-3-1">
+<div class="sourceCode" id="cb17"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Rcpp.h&gt;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">R_altrep_class_t</span> example_altrep<span class="op">;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">// [[Rcpp::init]]</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> init_ExamplePackage<span class="op">(</span>DllInfo <span class="op">*</span> dll<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span><span class="op">(!</span>charport<span class="op">::</span>check_abi<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span>Rf_error<span class="op">)(</span><span class="st">&quot;ExamplePackage was built against an incompatible charport ABI&quot;</span><span class="op">);</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  example_altrep <span class="op">=</span> R_make_altstring_class<span class="op">(</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;example_altstring&quot;</span><span class="op">,</span> <span class="st">&quot;ExamplePackage&quot;</span><span class="op">,</span> dll</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">);</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  charport<span class="op">::</span>register_altrep<span class="op">(</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    example_altrep<span class="op">,</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    charport_reader_state_fns<span class="op">{</span>reader_init<span class="op">,</span> reader_release<span class="op">},</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    charport_reader_range_fns<span class="op">{</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>      range_strviews<span class="op">,</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>      range_byteviews<span class="op">,</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>      range_lengths<span class="op">,</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>      range_encodings</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>    charport_reader_index_fns<span class="op">{</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>      index_strviews<span class="op">,</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>      index_byteviews<span class="op">,</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>      index_lengths<span class="op">,</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>      index_encodings</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>    charport_reader_capabilities<span class="op">{</span><span class="kw">true</span><span class="op">,</span> <span class="kw">true</span><span class="op">}</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>  <span class="op">);</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a><span class="at">extern</span> <span class="st">&quot;C&quot;</span> <span class="dt">void</span> R_unload_ExamplePackage<span class="op">(</span>DllInfo <span class="op">*</span> dll<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>  charport<span class="op">::</span>unregister_altrep<span class="op">(</span>example_altrep<span class="op">);</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="dt">void</span><span class="op">)</span>dll<span class="op">;</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+</div>
+<div id="tabset-3-2">
+<div class="sourceCode" id="cb18"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cpp11.hpp&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;charport.h&quot;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">R_altrep_class_t</span> example_altrep<span class="op">;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="op">[[</span><span class="at">cpp11</span><span class="op">::</span><span class="at">init</span><span class="op">]]</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> init_ExamplePackage<span class="op">(</span>DllInfo <span class="op">*</span> dll<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span><span class="op">(!</span>charport<span class="op">::</span>check_abi<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span>Rf_error<span class="op">)(</span><span class="st">&quot;ExamplePackage was built against an incompatible charport ABI&quot;</span><span class="op">);</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  example_altrep <span class="op">=</span> R_make_altstring_class<span class="op">(</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;example_altstring&quot;</span><span class="op">,</span> <span class="st">&quot;ExamplePackage&quot;</span><span class="op">,</span> dll</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">);</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>  charport<span class="op">::</span>register_altrep<span class="op">(</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    example_altrep<span class="op">,</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    charport_reader_state_fns<span class="op">{</span>reader_init<span class="op">,</span> reader_release<span class="op">},</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    charport_reader_range_fns<span class="op">{</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>      range_strviews<span class="op">,</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>      range_byteviews<span class="op">,</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>      range_lengths<span class="op">,</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>      range_encodings</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    charport_reader_index_fns<span class="op">{</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>      index_strviews<span class="op">,</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>      index_byteviews<span class="op">,</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>      index_lengths<span class="op">,</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>      index_encodings</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>    charport_reader_capabilities<span class="op">{</span><span class="kw">true</span><span class="op">,</span> <span class="kw">true</span><span class="op">}</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>  <span class="op">);</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="at">extern</span> <span class="st">&quot;C&quot;</span> <span class="dt">void</span> R_unload_ExamplePackage<span class="op">(</span>DllInfo <span class="op">*</span> dll<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>  charport<span class="op">::</span>unregister_altrep<span class="op">(</span>example_altrep<span class="op">);</span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>  <span class="op">(</span><span class="dt">void</span><span class="op">)</span>dll<span class="op">;</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="charvec-direct">Using <code>charvec</code> Directly</h2>
+<p><code>charvec</code> is <code>charport</code>’s built-in general-purpose ALTREP string class. It is an efficient drop-in representation that you can use for many applications, especially for large string output.</p>
+<p>Each <code>charvec</code> is backed by a <code>charvec::Store</code> behind its R external pointer. The store owns two things:</p>
+<ol type="1">
+<li><code>SliceChain</code>, a linked list of large contiguous byte slices holding the string data.</li>
+<li><code>RecordTable</code>, the per-string metadata: a pointer into the <code>SliceChain</code>, a byte length, and an encoding mark.</li>
+</ol>
+<p>Conceptually:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Store <span class="op">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  SliceChain slices<span class="op">;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  RecordTable records<span class="op">;</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RecordTable <span class="op">{</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>unique_ptr<span class="op">&lt;</span><span class="at">const</span> <span class="dt">char</span> <span class="op">*[]&gt;</span> ptrs<span class="op">;</span>  <span class="co">// one pointer per string</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>unique_ptr<span class="op">&lt;</span><span class="dt">int</span><span class="op">[]&gt;</span> lens<span class="op">;</span>           <span class="co">// length of each string</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>unique_ptr<span class="op">&lt;</span><span class="dt">cetype_ext_t</span><span class="op">[]&gt;</span> encs<span class="op">;</span>  <span class="co">// encoding of each string</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">size_t</span> vector_length<span class="op">;</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">size_t</span> capacity<span class="op">;</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
+<p>For non-empty strings, <code>ptrs[i]</code> points into one of the byte slices. Empty strings point at shared empty storage. Missing strings are stored as <code>ptrs[i] = nullptr</code>, <code>lens[i] = NA_INTEGER</code>, and <code>encs[i] = CETYPE_EXT_NA</code>.</p>
+<h3 id="builder-basic-fixed-length-construction"><code>Builder</code>: basic fixed-length construction</h3>
+<p><code>charport</code> has three utility classes for building a <code>charvec</code>. <code>charvec::Builder</code> is for the simple case: the output length is known at construction time and one serial producer fills elements by index. The builder packs strings into shared slices; its first slice scales with the vector length up to 16 KiB, and later slices grow up to 256 KiB. A string larger than that cap gets an exact-fit slice.</p>
+<p>A string can be inserted into a builder with either <code>set()</code> or <code>reserve()</code>.</p>
+<p>Use <code>set()</code> when you have a buffer that only needs to be copied over.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>Builder b<span class="op">(</span>n<span class="op">);</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>b<span class="op">.</span>set<span class="op">(</span>i<span class="op">,</span> ptr<span class="op">,</span> len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span></code></pre></div>
+<p>Use <code>reserve()</code> when the output bytes can be written directly into the store:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span> dst <span class="op">=</span> b<span class="op">.</span>reserve<span class="op">(</span>i<span class="op">,</span> len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// write to dst directly</span></span></code></pre></div>
+<p>Call <code>to_sexp()</code> on the main R thread when the vector is done building: the <code>Builder</code> gives up its storage to the returned ALTREP <code>SEXP</code>. <code>to_sexp()</code> cannot throw a C++ exception, but can theoretically raise an out-of-memory R allocation error during the wrapping of <code>Store</code>. Packages can instead use the conversion methods <code>Builder::to_sexp_with_rcpp()</code> and <code>Builder::to_sexp_with_cpp11()</code> to adapt an R error to the framework’s C++ exception type.</p>
+<p><code>Builder::reset(n)</code> reuses the same builder object for a subsequent vector. This is useful when one operation returns several string vectors of known length.</p>
+<p>If construction finishes on a worker thread, you can instead use <code>release_store()</code> to release a <code>charvec::Store</code> by value. This object can then later be wrapped to an ALTREP <code>SEXP</code>:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// worker thread</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>Store store <span class="op">=</span> b<span class="op">.</span>release_store<span class="op">();</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// On the main R thread</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> charvec<span class="op">::</span>wrap<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>store<span class="op">));</span></span></code></pre></div>
+<p><code>charvec::wrap()</code> has the same error behavior as <code>Builder::to_sexp()</code>: it cannot throw a C++ exception, but may raise an R error while creating the ALTREP object. Similarly, you can use <code>charvec::wrap_with_rcpp()</code> or <code>charvec::wrap_with_cpp11()</code> to adapt an R error.</p>
+<h3 id="parallelbuilder-sharded-construction"><code>ParallelBuilder</code>: sharded construction</h3>
+<p>You can use <code>charvec::ParallelBuilder</code> when several workers fill disjoint ranges of one fixed-length vector, via <code>RcppParallel</code>, <code>RcppThread</code>, <code>OpenMP</code>, etc. It keeps separate slice state for each shard while sharing the final record table, and then combines the slices on the main thread.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>ParallelBuilder b<span class="op">(</span>n<span class="op">,</span> n_workers<span class="op">);</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// worker_id is 0 .. n_workers-1</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>parallel_for_each_worker<span class="op">(</span>worker_id<span class="op">,</span> n_workers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">R_xlen_t</span> begin <span class="op">=</span> n <span class="op">*</span> worker_id <span class="op">/</span> n_workers<span class="op">;</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">R_xlen_t</span> end <span class="op">=</span> n <span class="op">*</span> <span class="op">(</span>worker_id <span class="op">+</span> <span class="dv">1</span><span class="op">)</span> <span class="op">/</span> n_workers<span class="op">;</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span><span class="op">(</span><span class="dt">R_xlen_t</span> i <span class="op">=</span> begin<span class="op">;</span> i <span class="op">&lt;</span> end<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> <span class="op">*</span> dst <span class="op">=</span> b<span class="op">.</span>reserve<span class="op">(</span>worker_id<span class="op">,</span> i<span class="op">,</span> len<span class="op">[</span>i<span class="op">],</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// write this worker&#39;s bytes into dst</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co">// main thread</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> b<span class="op">.</span>to_sexp<span class="op">();</span></span></code></pre></div>
+<h3 id="growablebuilder-discovered-length-construction"><code>GrowableBuilder</code>: discovered-length construction</h3>
+<p>Use <code>charvec::GrowableBuilder</code> when the output length is not known ahead of time. This is like building a <code>std::vector</code> by sequential <code>push_back()</code>.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>GrowableBuilder b<span class="op">;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>b<span class="op">.</span>append<span class="op">(</span>view<span class="op">);</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>b<span class="op">.</span>append<span class="op">(</span>ptr<span class="op">,</span> len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span> dst <span class="op">=</span> b<span class="op">.</span>append_reserve<span class="op">(</span>len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co">// write to dst directly</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="dt">size_t</span> n <span class="op">=</span> b<span class="op">.</span>size<span class="op">();</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> b<span class="op">.</span>to_sexp<span class="op">();</span></span></code></pre></div>
+<p><code>append()</code> copies bytes. <code>append_reserve()</code> adds one record and returns its writable storage. The record table grows geometrically as elements are appended.</p>
+<h3 id="using-store-directly">Using <code>Store</code> directly</h3>
+<p><code>charvec::Store</code> is a public struct with <code>records</code> and <code>slices</code>. The constructor allocates a fixed record table and, when <code>initial_slice_bytes</code> is nonzero, one slice of storage. The caller must keep every record pointer, length, encoding, and slice consistent.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>Store store<span class="op">(</span><span class="dv">3</span><span class="op">,</span> total_bytes<span class="op">);</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span> data <span class="op">=</span> store<span class="op">.</span>slices<span class="op">.</span>front_data<span class="op">();</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="bu">std::</span>memcpy<span class="op">(</span>data<span class="op">,</span> src<span class="op">,</span> total_bytes<span class="op">);</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>store<span class="op">.</span>records<span class="op">.</span>set<span class="op">(</span><span class="dv">0</span><span class="op">,</span> data <span class="op">+</span> offset0<span class="op">,</span> len0<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>store<span class="op">.</span>records<span class="op">.</span>set<span class="op">(</span><span class="dv">1</span><span class="op">,</span> data <span class="op">+</span> offset1<span class="op">,</span> len1<span class="op">,</span> CETYPE_EXT_LATIN1<span class="op">);</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>store<span class="op">.</span>records<span class="op">.</span>set_na<span class="op">(</span><span class="dv">2</span><span class="op">);</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> charvec<span class="op">::</span>wrap<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>store<span class="op">));</span></span></code></pre></div>
+<p>Allocate another slice with <code>store.slices.push_front(bytes)</code>. It returns the new slice’s data pointer.</p>
+<p>For a one-element result, <code>Store::scalar()</code> copies the bytes and fills record zero:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>Store store <span class="op">=</span> charvec<span class="op">::</span>Store<span class="op">::</span>scalar<span class="op">(</span>ptr<span class="op">,</span> len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> charvec<span class="op">::</span>wrap<span class="op">(</span><span class="bu">std::</span>move<span class="op">(</span>store<span class="op">));</span></span></code></pre></div>
+<h3 id="building-charvec-from-c">Building <code>charvec</code> from C</h3>
+<p>C callers can construct a <code>charvec</code> from complete pointer, length, and encoding arrays with <code>charport_charvec_from_views()</code>.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span> ptrs<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="st">&quot;alpha&quot;</span><span class="op">,</span> NULL<span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">};</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> <span class="dt">int</span> lengths<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span><span class="dv">5</span><span class="op">,</span> NA_INTEGER<span class="op">,</span> <span class="dv">0</span><span class="op">};</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> cetype_ext_t encodings<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  CETYPE_EXT_ASCII<span class="op">,</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  CETYPE_EXT_NA<span class="op">,</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  CETYPE_EXT_ASCII</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> charport_charvec_from_views<span class="op">(</span><span class="dv">3</span><span class="op">,</span> ptrs<span class="op">,</span> lengths<span class="op">,</span> encodings<span class="op">);</span></span></code></pre></div>
+<h2 id="abi-compatibility-guard">ABI Compatibility</h2>
+<p>Every package compiled against <code>charport</code> should call <code>check_abi()</code> during package loading, before registering a class or using <code>Reader</code> and <code>Builder</code> entry points. The registration examples above include the check. A consumer-only package should make the same call from its initialization hook.</p>
+<p>In C, compare <code>charport_abi_version()</code> with <code>CHARPORT_ABI_VERSION</code> instead.</p>
+
+
+
+
+
+</body></html>
