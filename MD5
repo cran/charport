@@ -1,6 +1,7 @@
-b2d05489e7ccbd50fa32fe931660728a *DESCRIPTION
+a7555be4936f8424d8ad060693320b39 *DESCRIPTION
 3435e2454d1e8a615af79053ed563494 *LICENSE
 e3bfa8850e190f7b8a04f6b1dd1e4994 *NAMESPACE
+d81a6fd6f92730cc8aa90564c1511bc2 *NEWS.md
 50a1a4b7a318fba2f017e5a404e25c21 *R/charport-package.R
 3fcc64da9a4285546804cb49ea118c03 *R/charvec.R
 268b063feabddb898733a0cb9ee0bd69 *R/registry.R
@@ -16,10 +17,10 @@ ff8aed4a3a278860ce41055fb5699dd6 *inst/doc/error-handling.html
 f53462836e27f6fe06350eb0665959a2 *inst/doc/error-handling.qmd
 294e3f6ae40244ebe10cc8e8071a1b83 *inst/include/charport.h
 741d15bc569121ca7b17679834957602 *inst/include/charport/api.h
-0798ef1accf5cda3231c51a1511b5ff3 *inst/include/charport/charvec/builder.h
+758a8de96f27ae100cedcaa969d5d631 *inst/include/charport/charvec/builder.h
 83214dbc6c110e9a074bbf702be0a59d *inst/include/charport/charvec/detail.h
-401cb41122503b692c3b194a36964b1b *inst/include/charport/charvec/store.h
-7df24aa0becd0c65f9c3c1623e6f009f *inst/include/charport/interop/reader.h
+0e8e72552c069dac71fe478d02fba096 *inst/include/charport/charvec/store.h
+09c515568e968511066b705cdc652db4 *inst/include/charport/interop/reader.h
 f2c14c0ac5423789cf4dbda4af7b594c *inst/include/charport/interop/types.h
 daaea277b4230855e302956f80fdae02 *man/as_charvec.Rd
 c3b538cb363f493f3d0d1b9af8e3181b *man/charport-package.Rd
@@ -47,7 +48,7 @@ fd3e3c6716257f3deedce1ca09fbc624 *tests/cpp11_consumer.cpp
 6d4a49cc4aae2bb467b91d1271ef81e2 *tests/helpers/internal_calls.R
 a86044cdd05c7334a0782df5cd1e2558 *tests/rcpp_consumer.cpp
 b4215269799dd3b0d4a855597e06bed7 *tests/test_charport_wrappers.R
-3c462bca78556469c1029ad1dc55c7d0 *tests/test_charvec_semantics.R
+f9c83d4d7eab72870414893f241f7cc0 *tests/test_charvec_semantics.R
 e17da6cc86576f4cb678724244948a37 *tests/test_charvec_store.R
 a4f1aad272108d506247484c4f7ac77e *tests/test_registry_reader.R
 3799d4b17a21e48e5d755a8a1e26f83d *tests/test_threaded_consumer.R
