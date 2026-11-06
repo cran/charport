@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.11.9">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -10,10 +10,13 @@
 <title>charport </title>
 <style>
 
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -178,7 +181,7 @@ text-decoration: underline; }
 
 
 <p><strong>ALTREP string interoperability</strong></p>
-<p>R’s ALTREP system lets packages represent string data more efficiently. But acrosses packages, ALTREP vectors usually <em>materialize</em> back into ordinary R strings, and that step can be costly.</p>
+<p>R’s ALTREP system lets packages represent string data more efficiently. But across packages, ALTREP vectors usually <em>materialize</em> back into ordinary R strings, and that step can be costly.</p>
 <p><code>charport</code> is an experimental package with the goal of removing that materialization cost by making ALTREP strings interoperable. The hope is that ALTREP strings become more than package-local optimization and become shared infrastructure.</p>
 <p><em>This work is supported by the R Consortium Infrastructure Steering Committee, under the grant Universal ALTREP Interoperability for Strings.</em></p>
 <h2 id="altrep-string-access">ALTREP string access</h2>

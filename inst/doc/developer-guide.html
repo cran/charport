@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.11.9">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -10,10 +10,13 @@
 <title>Charport Package Developer Guide</title>
 <style>
 
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -215,11 +218,12 @@ text-decoration: underline; }
 <h2 id="overview">Overview</h2>
 <p>At its core, <code>charport</code> is a small contract between ALTREP producer and consumer packages. ALTREP producers expose byte views to other packages using one safe read-only interface, and consumers read those byte views from the other side of the interface. A package can register ALTREP strings, consume ALTREP strings, or use <code>charvec</code>, a built-in ALTREP class, directly. The diagram below shows how those roles are organized in this package.</p>
 <p><img role="img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDgwIDU4MCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InRpdGxlIGRlc2MiPgogIDx0aXRsZSBpZD0idGl0bGUiPmNoYXJwb3J0IGRldmVsb3BlciBpbnRlZ3JhdGlvbiBtYXA8L3RpdGxlPgogIDxkZXNjIGlkPSJkZXNjIj5BIHRlY2huaWNhbCBmbG93Y2hhcnQgc2hvd2luZyBhIHByb2R1Y2VyIHBhY2thZ2UgcmVnaXN0ZXJpbmcgYW4gQUxUUkVQIGNsYXNzIG9yIHVzaW5nIGNoYXJ2ZWMsIGNoYXJwb3J0IHN0b3JpbmcgcmVnaXN0cmF0aW9ucywgYW5kIGEgY29uc3VtZXIgcGFja2FnZSByZWFkaW5nIHRocm91Z2ggY2hhcnBvcnQ6OlJlYWRlci48L2Rlc2M+CiAgPCEtLQogICAgVGhlbWUtc2FmZSBwYWxldHRlIChzaGFyZWQgd2l0aCBhbHRyZXAtc3RyaW5nLWFjY2VzcykuIFRyYW5zcGFyZW50CiAgICBiYWNrZ3JvdW5kOyBldmVyeSBsYWJlbCByaWRlcyBvbiBhIHdoaXRlIG9yIGxhdmVuZGVyIGZpbGwuIFRoZSBjaGFycG9ydAogICAgaHViIGNvbHVtbiBjYXJyaWVzIGEgdHJhbnNsdWNlbnQgbGF2ZW5kZXIgd2FzaCAoZmlsbC1vcGFjaXR5KSBzbyBpdCByZWFkcwogICAgYXMgYSBzb2Z0IGFjY2VudCBvbiBib3RoIGxpZ2h0IGFuZCBkYXJrIHBhZ2VzIHdpdGhvdXQgYSBiYWtlZCBiYWNrZ3JvdW5kLgogICAgICBpbmsgIzJjMWY1NyDCtyBkZWVwICMzYTJhNzggwrcgZWRnZSAjNmE0ZmE2IMK3IGxpbmUgIzg2NzBiZgogICAgICBtdXRlZCAjNmQ1ZmEwIMK3IHdhc2ggI2VmZTlmYS8jZTJkOGY0IMK3IGh1Yndhc2ggI2E4OTJkOEAwLjEyCiAgLS0+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5sYW5lICAgeyBmaWxsOiAjZmZmZmZmOyBzdHJva2U6ICM2YTRmYTY7IHN0cm9rZS13aWR0aDogMS42OyB9CiAgICAgIC5sYWJlbCAgeyBmaWxsOiAjMmMxZjU3OyBmb250OiA2NTAgMTZweCBJbnRlciwgQXZlbmlyLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOyB9CiAgICAgIC5tb25vICAgeyBmaWxsOiAjMmMxZjU3OyBmb250OiA2NTAgMTVweCB1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgQ29uc29sYXMsIG1vbm9zcGFjZTsgfQogICAgICAubXV0ZWQgIHsgZmlsbDogIzZkNWZhMDsgZm9udDogNjAwIDE0cHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuY29sICAgIHsgZmlsbDogIzJjMWY1NzsgZm9udDogNzAwIDE4cHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuaHVidHRsIHsgZmlsbDogI2ZmZmZmZjsgZm9udDogNzUwIDIxcHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuYXJyb3cgIHsgZmlsbDogbm9uZTsgc3Ryb2tlOiAjODY3MGJmOyBzdHJva2Utd2lkdGg6IDEuNzsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOyBzdHJva2UtbGluZWpvaW46IHJvdW5kOyBtYXJrZXItZW5kOiB1cmwoI2Fycm93KTsgfQogICAgICAuZWxhYmVsIHsgZmlsbDogIzJjMWY1NzsgZm9udDogNjUwIDE0cHggSW50ZXIsIEF2ZW5pciwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsgfQogICAgICAuZWNoaXAgIHsgZmlsbDogI2ZmZmZmZjsgc3Ryb2tlOiAjODY3MGJmOyBzdHJva2Utd2lkdGg6IDEuMjsgfQogICAgPC9zdHlsZT4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0id2FzaCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlZmU5ZmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTJkOGY0Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkZWVwd2FzaCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM0YTM2OTAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzUyNTc1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyb3ciIG1hcmtlcldpZHRoPSI5IiBtYXJrZXJIZWlnaHQ9IjkiIHJlZlg9IjcuNSIgcmVmWT0iNC41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEw5IDQuNSBMMCA5IFoiIGZpbGw9IiM4NjcwYmYiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB4PSI0MCIgeT0iMzQiIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjUxMiIgcng9IjIyIiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNiOWE5ZGYiIHN0cm9rZS13aWR0aD0iMi4yIi8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwzMCkiPgoKICA8IS0tIGh1YiBhY2NlbnQgY29sdW1uICh0cmFuc2x1Y2VudCwgYWRhcHRzIHRvIHBhZ2UgYmFja2dyb3VuZCkgLS0+CiAgPHJlY3QgeD0iMzU2IiB5PSIyOCIgd2lkdGg9IjM2OCIgaGVpZ2h0PSI0NjYiIHJ4PSIxOCIgZmlsbD0iI2E4OTJkOCIgZmlsbC1vcGFjaXR5PSIwLjEyIi8+CgogIDwhLS0gY29sdW1uIGhlYWRlcnMgLS0+CiAgPHJlY3QgeD0iMTA0IiB5PSI0MCIgd2lkdGg9IjE1MiIgaGVpZ2h0PSI0MCIgcng9IjIwIiBmaWxsPSJ1cmwoI3dhc2gpIiBzdHJva2U9IiNiOWE5ZGYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMTgwIiB5PSI2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImNvbCI+cHJvZHVjZXJwa2c8L3RleHQ+CiAgPHJlY3QgeD0iNDYyIiB5PSIzOCIgd2lkdGg9IjE1NiIgaGVpZ2h0PSI0NCIgcng9IjIyIiBmaWxsPSJ1cmwoI2RlZXB3YXNoKSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iNjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJodWJ0dGwiPmNoYXJwb3J0PC90ZXh0PgogIDxyZWN0IHg9IjgyNCIgeT0iNDAiIHdpZHRoPSIxNTIiIGhlaWdodD0iNDAiIHJ4PSIyMCIgZmlsbD0idXJsKCN3YXNoKSIgc3Ryb2tlPSIjYjlhOWRmIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjkwMCIgeT0iNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJjb2wiPmNvbnN1bWVycGtnPC90ZXh0PgoKICA8IS0tIHByb2R1Y2VyIG5vZGVzIC0tPgogIDxyZWN0IHg9IjcwIiB5PSIxMTYiIHdpZHRoPSIyMjAiIGhlaWdodD0iODIiIHJ4PSIxMCIgY2xhc3M9ImxhbmUiLz4KICA8dGV4dCB4PSIxODAiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxhYmVsIj5QYWNrYWdlLXNwZWNpZmljPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPkFMVFJFUCBjbGFzczwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5vd25zIHN0b3JhZ2UgbGF5b3V0PC90ZXh0PgoKICA8cmVjdCB4PSI3MCIgeT0iMjU2IiB3aWR0aD0iMjIwIiBoZWlnaHQ9Ijc4IiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iMTgwIiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtb25vIj5yZWdpc3Rlcl9hbHRyZXAoKTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5pbml0IC8gZ2V0IC8gcmVsZWFzZTwvdGV4dD4KCiAgPHJlY3QgeD0iNzAiIHk9IjM4OCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI1MiIgcng9IjEwIiBjbGFzcz0ibGFuZSIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPnVzZSBjaGFydmVjIGRpcmVjdGx5PC90ZXh0PgoKICA8IS0tIGh1YiBub2RlcyAtLT4KICA8cmVjdCB4PSI0MTAiIHk9IjExNiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI5NiIgcng9IjEwIiBjbGFzcz0ibGFuZSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMTQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGFiZWwiPlJlZ2lzdHJ5PC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibXV0ZWQiPkFMVFJFUCBjbGFzcyAmIzg1OTQ7IHJlYWQgbWV0aG9kczwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjE5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj52aWV3IGd1YXJhbnRlZXMgKyByZWxlYXNlIGhvb2s8L3RleHQ+CgogIDxyZWN0IHg9IjQxMCIgeT0iMjcwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjcyIiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+Y2hhcnZlYzwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjMyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5idWlsdC1pbiByZWdpc3RlcmVkIGNsYXNzPC90ZXh0PgoKICA8IS0tIGNvbnN1bWVyIG5vZGVzIC0tPgogIDxyZWN0IHg9Ijc5MCIgeT0iMTE2IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjgyIiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iOTAwIiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtb25vIj5jaGFycG9ydDo6UmVhZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibXV0ZWQiPmNvbnN0cnVjdGVkIGZyb20gU0VYUDwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im11dGVkIj5yZXNvbHZlcyByZWFkIHBhdGggb25jZTwvdGV4dD4KCiAgPHJlY3QgeD0iNzkwIiB5PSIyNTYiIHdpZHRoPSIyMjAiIGhlaWdodD0iOTYiIHJ4PSIxMCIgY2xhc3M9ImxhbmUiLz4KICA8dGV4dCB4PSI5MDAiIHk9IjI4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im1vbm8iPlN0clZpZXc8L3RleHQ+CiAgPHRleHQgeD0iOTAwIiB5PSIzMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtdXRlZCI+cHRyICsgbGVuICsgZW5jPC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iMzMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibXV0ZWQiPihub24tbWF0ZXJpYWxpemluZyk8L3RleHQ+CgogIDxyZWN0IHg9Ijc5MCIgeT0iMzg4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjUyIiByeD0iMTAiIGNsYXNzPSJsYW5lIi8+CiAgPHRleHQgeD0iOTAwIiB5PSI0MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYWJlbCI+Q29uc3VtZXIgYWxnb3JpdGhtPC90ZXh0PgoKICA8IS0tIGVkZ2VzIC0tPgogIDxwYXRoIGQ9Ik0xODAgMTk4IFYyNTIiIGNsYXNzPSJhcnJvdyIvPgogIDxwYXRoIGQ9Ik0yOTAgMjk1IEMzNDUgMjk1IDM0NiAxNjQgNDAyIDE2NCIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iMzEzIiB5PSIyMjEiIHdpZHRoPSI2OCIgaGVpZ2h0PSIyMyIgcng9IjciIGNsYXNzPSJlY2hpcCIvPgogIDx0ZXh0IHg9IjM0NyIgeT0iMjM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZWxhYmVsIj5SZWdpc3RlcjwvdGV4dD4KCiAgPHRleHQgeD0iMTgwIiB5PSIzNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJtdXRlZCI+b3I8L3RleHQ+CiAgPHBhdGggZD0iTTI5MCA0MTQgQzM0NSA0MTQgMzQ2IDMwNiA0MDIgMzA2IiBjbGFzcz0iYXJyb3ciLz4KCiAgPHBhdGggZD0iTTkwMCAxOTggVjI1MiIgY2xhc3M9ImFycm93Ii8+CiAgPHBhdGggZD0iTTkwMCAzNTIgVjM4MiIgY2xhc3M9ImFycm93Ii8+CgogIDxwYXRoIGQ9Ik03OTAgMTU2IEg2NzgiIGNsYXNzPSJhcnJvdyIvPgogIDxyZWN0IHg9IjcwMSIgeT0iMTI4IiB3aWR0aD0iNjQiIGhlaWdodD0iMjMiIHJ4PSI3IiBjbGFzcz0iZWNoaXAiLz4KICA8dGV4dCB4PSI3MzMiIHk9IjE0NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImVsYWJlbCI+cmVzb2x2ZTwvdGV4dD4KCiAgPHBhdGggZD0iTTY3MCAxNzAgSDc4MiIgY2xhc3M9ImFycm93Ii8+CiAgPHJlY3QgeD0iNjc4IiB5PSIxNzUiIHdpZHRoPSI5NiIgaGVpZ2h0PSIyMyIgcng9IjciIGNsYXNzPSJlY2hpcCIvPgogIDx0ZXh0IHg9IjcyNiIgeT0iMTkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0iZWxhYmVsIj5yZWFkIG1ldGhvZHM8L3RleHQ+CgogIDxwYXRoIGQ9Ik01NDAgMjcwIFYyMTYiIGNsYXNzPSJhcnJvdyIvPgogIDwvZz4KPC9zdmc+Cg=="></p>
-<p>The guide goes through three main use cases:</p>
+<p>The guide goes through four main use cases:</p>
 <ul>
 <li><a href="#universal-reader">Using the Universal Reader</a>: read ALTREP strings through one C++ interface.</li>
 <li><a href="#altrep-registration">Registering an ALTREP Class</a>: make an ALTREP string class readable by other packages through <code>charport</code>.</li>
 <li><a href="#charvec-direct">Using <code>charvec</code> Directly</a>: use the built-in <code>charvec</code> ALTREP class directly with serial or multithreaded builders.</li>
+<li><a href="#charpack"><code>charpack</code>: compact vectors</a>: use the built-in <code>charpack</code> class for many short vectors.</li>
 </ul>
 <p><code>charport</code> can be used from C or from C++11 and later. Its error model was designed and tested with particular care so that R errors and C++ exceptions are propagated properly from both languages. This guide explains the relevant rules alongside the APIs they govern; the <a href="error-handling.html">Error handling</a> vignette gives a more complete design and rationale.</p>
 <h2 id="linking-to-charport">Linking to <code>charport</code></h2>
@@ -245,7 +249,7 @@ import(charport)</code></pre>
 </div>
 </div>
 <p>There is one public header: <code>charport.h</code>. If you use <code>Rcpp</code> or <code>cpp11</code>, you should include that framework’s header first.</p>
-<p>The same header can be included from C. Its C interface exposes ABI checks, reader borrows, vector inspection, and complete-vector <code>charvec</code> construction through R’s <code>R_GetCCallable()</code>. C++ packages also get the <code>Reader</code> class, <code>charvec</code> builders, and ALTREP registration. The C++ interface requires C++11 or higher.</p>
+<p>The same header can be included from C. Its C interface exposes ABI checks, reader borrows, vector inspection, the native-encoding check, and complete-vector <code>charvec</code> construction through R’s <code>R_GetCCallable()</code>. C++ packages also get the <code>Reader</code> class, <code>charvec</code> builders, and ALTREP registration. The C++ interface requires C++11 or higher.</p>
 <p>The main entry points have direct C and C++ counterparts:</p>
 <table class="caption-top">
 <colgroup>
@@ -282,6 +286,11 @@ import(charport)</code></pre>
 <td><code>charport::sexp_info(x)</code></td>
 </tr>
 <tr class="odd">
+<td>Check whether native strings are UTF-8</td>
+<td><code>charport_native_is_utf8()</code></td>
+<td><code>charport::native_is_utf8()</code></td>
+</tr>
+<tr class="even">
 <td>Build a <code>charvec</code></td>
 <td><code>charport_charvec_from_views(...)</code></td>
 <td><code>charvec::Builder</code></td>
@@ -404,19 +413,19 @@ import(charport)</code></pre>
 <tbody>
 <tr class="odd">
 <td><code>CETYPE_EXT_NATIVE</code></td>
-<td>Native encoding based on machine locale.</td>
+<td>Non-ASCII text in the session’s native encoding.</td>
 </tr>
 <tr class="even">
 <td><code>CETYPE_EXT_UTF8</code></td>
-<td>UTF-8.</td>
+<td>Non-ASCII UTF-8.</td>
 </tr>
 <tr class="odd">
 <td><code>CETYPE_EXT_LATIN1</code></td>
-<td>Latin-1.</td>
+<td>Non-ASCII Latin-1.</td>
 </tr>
 <tr class="even">
 <td><code>CETYPE_EXT_BYTES</code></td>
-<td>Bytes encoding.</td>
+<td>Non-ASCII bytes encoding.</td>
 </tr>
 <tr class="odd">
 <td><code>CETYPE_EXT_ASCII_OR_UTF8</code></td>
@@ -436,9 +445,13 @@ import(charport)</code></pre>
 <p>R’s encoding scheme is aggregated into this single type. <code>CETYPE_EXT_ASCII</code>, <code>CETYPE_EXT_ASCII_OR_UTF8</code>, and <code>CETYPE_EXT_NA</code> are simplifications: <code>CETYPE_EXT_ASCII</code> corresponds to the ASCII mark available from <code>Rf_charIsASCII()</code>. In R, the ASCII mark <strong>always</strong> occurs with <code>CETYPE_EXT_NATIVE</code>, so it represents a mutually exclusive state.</p>
 <p><code>CETYPE_EXT_ASCII_OR_UTF8</code> exists because base R materialization always checks whether a string is ASCII, so differentiating ASCII and UTF-8 early is often redundant work.</p>
 <p><code>CETYPE_EXT_NA</code> carries the missing-string case alongside the pointer and length.</p>
-<p>Ordinary <code>cetype_t</code> values correspond to <code>cetype_ext_t</code> values, so you can wrap R’s encoding mark when you already have a <code>cetype_t</code>:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">cetype_ext_t</span> enc <span class="op">=</span> charport_cetype_ext<span class="op">(</span><span class="kw">static_cast</span><span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;(</span>Rf_getCharCE<span class="op">(</span>x<span class="op">)));</span></span></code></pre></div>
-<p>That cast preserves the encoding marks for native, UTF-8, Latin-1 and byte strings.</p>
+<p>ASCII text is always tagged <code>CETYPE_EXT_ASCII</code> or <code>CETYPE_EXT_ASCII_OR_UTF8</code>. R drops the encoding mark of every ASCII string, so the other four tags always describe at least one non-ASCII byte. charport’s own conversions from R strings follow this rule. Constructors and <code>Writer</code> store the tags they are given without checking them, so a producer that tags its own strings must follow it too. Tags are part of <code>charport_strview</code> equality: <code>&quot;a&quot;</code> tagged <code>CETYPE_EXT_NATIVE</code> does not compare equal to <code>&quot;a&quot;</code> tagged <code>CETYPE_EXT_ASCII</code>.</p>
+<p>Ordinary <code>cetype_t</code> values correspond to <code>cetype_ext_t</code> values, so you can wrap R’s encoding mark when you already have a <code>cetype_t</code>. <code>Rf_getCharCE()</code> reports <code>CE_NATIVE</code> for ASCII strings, so check the ASCII mark first:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">cetype_ext_t</span> enc <span class="op">=</span> Rf_charIsASCII<span class="op">(</span>x<span class="op">)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">?</span> CETYPE_EXT_ASCII</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> charport_cetype_ext<span class="op">(</span><span class="kw">static_cast</span><span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;(</span>Rf_getCharCE<span class="op">(</span>x<span class="op">)));</span></span></code></pre></div>
+<p>That cast preserves the encoding marks for native, UTF-8, Latin-1 and byte strings. <code>Rf_charIsASCII()</code> needs R 4.5 or later; before that, scan the bytes.</p>
+<p>What a native-tagged string means depends on the session’s locale, which <code>Sys.setlocale()</code> can change. <code>charport_native_is_utf8()</code> (C++: <code>charport::native_is_utf8()</code>) reports whether R currently reads native strings as UTF-8. It follows <code>Sys.setlocale()</code>, so call it at the start of each operation rather than caching the answer. On R 4.5 or later it costs a few nanoseconds; older versions run a short iconv probe. Call it from the main thread.</p>
 <h3 id="reader-lifetime-and-multithreading">Reader Lifetime and Multithreading</h3>
 <p>In Rust terms, initializing the <code>Reader</code> is a strict borrow. The <code>Reader</code> is a temporary view of the vector’s current string storage, valid only while that storage remains protected and unmodified. Access to and modification of the original R object (<code>STRING_ELT</code>, <code>STRING_PTR_RO</code>, <code>DATAPTR_RO</code>, etc.) can invalidate the <code>Reader</code>.</p>
 <p>An exception is attributes; you can handle attributes on the original R object while <code>Reader</code> exists.</p>
@@ -484,7 +497,7 @@ import(charport)</code></pre>
 <span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="dt">bool</span> concurrent_access<span class="op">;</span></span>
 <span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span></code></pre></div>
 <p><code>init(SEXP x)</code> starts the reader and returns the state used by the access callbacks. <code>release</code> cleans up that state when the <code>Reader</code> is destroyed and may be <code>nullptr</code> when no cleanup is needed. <code>init</code> should not allow C++ exceptions to fall through, but instead convert them to R errors.</p>
-<p>Returning <code>NULL</code> from <code>init</code> means this particular vector cannot satisfy the reader contract, so <code>charport</code> falls back to default access.</p>
+<p>Returning <code>NULL</code> from <code>init</code> means this particular vector cannot satisfy the reader contract (for example, it is already materialized), so <code>charport</code> falls back to default access.</p>
 <p>While <code>charport</code> asks for many callback functions during registration, they are all pretty similar and can be built from the same boilerplate. Range callbacks (<code>charport_reader_range_fns</code>) fill output arrays for the 0-based interval <code>[start, start + size)</code>:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> range_strviews<span class="op">(</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span> state<span class="op">,</span> <span class="dt">R_xlen_t</span> start<span class="op">,</span> <span class="dt">R_xlen_t</span> size<span class="op">,</span></span>
@@ -728,6 +741,45 @@ import(charport)</code></pre>
 <span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
 <span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>SEXP out <span class="op">=</span> charport_charvec_from_views<span class="op">(</span><span class="dv">3</span><span class="op">,</span> ptrs<span class="op">,</span> lengths<span class="op">,</span> encodings<span class="op">);</span></span></code></pre></div>
+<h3 id="filling-a-charvec-in-place">Filling a <code>charvec</code> in place</h3>
+<p>Sometimes it makes more sense to create the ALTREP object before filling data in. <code>charvec::alloc_na(n)</code> returns a <code>charvec</code> of <code>n</code> NA strings, and <code>charvec::get_store(x)</code> returns its underlying <code>Store</code> that can be filled.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>SEXP x <span class="op">=</span> PROTECT<span class="op">(</span>charvec<span class="op">::</span>alloc_na<span class="op">(</span>n<span class="op">));</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">// ... place x in its parent object ...</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>Store <span class="op">*</span> store <span class="op">=</span> charvec<span class="op">::</span>get_store<span class="op">(</span>x<span class="op">);</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>charvec<span class="op">::</span>Writer w<span class="op">(*</span>store<span class="op">);</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span> dst <span class="op">=</span> w<span class="op">.</span>reserve<span class="op">(</span>len<span class="op">);</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co">// write len bytes to dst</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>w<span class="op">.</span>set<span class="op">(</span>i<span class="op">,</span> dst<span class="op">,</span> len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>w<span class="op">.</span>copy<span class="op">(</span>j<span class="op">,</span> ptr<span class="op">,</span> len<span class="op">,</span> CETYPE_EXT_UTF8<span class="op">);</span>  <span class="co">// reserve, copy and set</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>w<span class="op">.</span>set_na<span class="op">(</span>k<span class="op">);</span></span></code></pre></div>
+<h2 id="charpack"><code>charpack</code>: compact vectors</h2>
+<p>While <code>charvec</code> works well for long vectors, <code>charpack</code> is optimized for short vectors. It does so by keeping all data in a raw vector, avoiding object storage and external pointer overhead. A <code>Reader</code> reads that raw vector in place and reaches any element directly, without allocating.</p>
+<p>Construction is always one-shot:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// strings from pointer, length and encoding arrays, same semantics as charvec</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>SEXP x <span class="op">=</span> charpack<span class="op">::</span>from_views<span class="op">(</span>n<span class="op">,</span> ptrs<span class="op">,</span> lengths<span class="op">,</span> encodings<span class="op">);</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">// strings from byte slices, split in order by the lengths</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">// string data is copied from slices</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>SEXP y <span class="op">=</span> charpack<span class="op">::</span>from_slices<span class="op">(</span>n<span class="op">,</span> lengths<span class="op">,</span> encodings<span class="op">,</span> n_slices<span class="op">,</span> slices<span class="op">,</span> slice_bytes<span class="op">);</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co">// strings of a finished charvec Store, e.g. from Builder::release_store();</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="co">// the store is not modified, so the caller can free or reuse it</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>SEXP z <span class="op">=</span> charpack<span class="op">::</span>from_store<span class="op">(</span>store<span class="op">);</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co">// create first, fill later from views</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>SEXP p <span class="op">=</span> PROTECT<span class="op">(</span>charpack<span class="op">::</span>placeholder<span class="op">());</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>charpack<span class="op">::</span>fill_views<span class="op">(</span>p<span class="op">,</span> n<span class="op">,</span> ptrs<span class="op">,</span> lengths<span class="op">,</span> encodings<span class="op">);</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="co">// create first, fill later from slices</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>SEXP q <span class="op">=</span> PROTECT<span class="op">(</span>charpack<span class="op">::</span>placeholder<span class="op">());</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>charpack<span class="op">::</span>fill_slices<span class="op">(</span>q<span class="op">,</span> n<span class="op">,</span> lengths<span class="op">,</span> encodings<span class="op">,</span> n_slices<span class="op">,</span> slices<span class="op">,</span> slice_bytes<span class="op">);</span></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a><span class="co">// materialize early, fill data2 slot and return it</span></span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>SEXP r <span class="op">=</span> PROTECT<span class="op">(</span>charpack<span class="op">::</span>placeholder<span class="op">());</span></span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>SEXP rdata2 <span class="op">=</span> charpack<span class="op">::</span>fill_materialized_na<span class="op">(</span>r<span class="op">,</span> n<span class="op">);</span></span></code></pre></div>
+<p>A placeholder has length 0 until it is filled. Because <code>charpack</code> always one-shot copies the entire vector, large vectors or large strings temporarily need to be stored twice and might become memory inefficient. So <code>fill_materialized_na(x, n)</code> is a way out by materializing early. It materializes <code>x</code> as <code>n</code> NA strings and returns the materialized vector, so you can fill it with <code>SET_STRING_ELT</code>.</p>
 <h2 id="abi-compatibility-guard">ABI Compatibility</h2>
 <p>Every package compiled against <code>charport</code> should call <code>check_abi()</code> during package loading, before registering a class or using <code>Reader</code> and <code>Builder</code> entry points. The registration examples above include the check. A consumer-only package should make the same call from its initialization hook.</p>
 <p>In C, compare <code>charport_abi_version()</code> with <code>CHARPORT_ABI_VERSION</code> instead.</p>

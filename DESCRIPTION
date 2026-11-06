@@ -1,7 +1,7 @@
 Package: charport
 Title: ALTREP String Interoperability
-Version: 0.1.1
-Date: 2026-09-18
+Version: 0.2.0
+Date: 2026-11-06
 Authors@R: c(
     person("Travers", "Ching", email = "traversc@gmail.com", role = c("aut", "cre", "cph")),
     person("R Consortium", role = "fnd",
@@ -26,13 +26,13 @@ Depends: R (>= 3.6.0)
 URL: https://github.com/charbase/charport,
         https://charbase.github.io/charport/
 BugReports: https://github.com/charbase/charport/issues
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
 Config/Needs/website: pkgdown, xml2
 NeedsCompilation: yes
-Packaged: 2026-09-19 06:05:06 UTC; tedai
+Packaged: 2026-11-06 08:55:06 UTC; tedvm
 Author: Travers Ching [aut, cre, cph],
   R Consortium [fnd] (Infrastructure Steering Committee grant: Universal
     ALTREP Interoperability for Strings)
 Maintainer: Travers Ching <traversc@gmail.com>
 Repository: CRAN
-Date/Publication: 2026-09-21 10:00:28 UTC
+Date/Publication: 2026-11-06 10:40:02 UTC

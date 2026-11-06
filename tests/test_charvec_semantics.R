@@ -107,6 +107,11 @@ stopifnot(marks_identical(x[c(3L, NA, 99L)], ref[c(3L, NA, 99L)]))
 stopifnot(marks_identical(x[c(TRUE, FALSE, NA)], ref[c(TRUE, FALSE, NA)]))
 stopifnot(marks_identical(x[0L], ref[0L]), length(x[0L]) == 0L)
 stopifnot(marks_identical(x[c(2.0, 4.0)], ref[c(2.0, 4.0)]))
+# An index above INT_MAX keeps the subscript real, so R passes 9.5 through; it
+# truncates to the last element. 32-bit R rejects such an index.
+if (.Machine$sizeof.pointer == 8L) {
+  stopifnot(marks_identical(x[c(length(ref) + 0.5, 3e9)], ref[c(length(ref) + 0.5, 3e9)]))
+}
 stopifnot(identical(names(x[c(2L, 5L)]), names(ref[c(2L, 5L)])))
 for (i in 1:25) {
   idx <- sample(c(seq_along(ref), NA, 50L), size = sample(0:12, 1), replace = TRUE)
@@ -194,15 +199,6 @@ encode_uint <- function(x, size, endian = .Platform$endian) {
   }
   out
 }
-native_endian_flag <- function() {
-  as.raw(if (.Platform$endian == "little") 1L else 2L)
-}
-opposite_endian <- function() {
-  if (.Platform$endian == "little") "big" else "little"
-}
-opposite_endian_flag <- function() {
-  as.raw(if (.Platform$endian == "little") 2L else 1L)
-}
 find_raw_subsequence <- function(haystack, needle) {
   limit <- length(haystack) - length(needle) + 1L
   stopifnot(limit >= 1L)
@@ -227,30 +223,41 @@ expect_unserialize_error <- function(serialized) {
   stopifnot(inherits(err, "error"))
   stopifnot(grepl("charport", conditionMessage(err), fixed = TRUE))
 }
-# state layout for charvec("abc"):
-# "CPV1" | u8 endian flag | u64 n=1 | u32 len=3 | u8 enc=254 (ascii) | "abc"
+# state layout for charvec("abc"), written little-endian on every host:
+# "CPV2" | u8 endian flag 1 | u64 n=1 | u32 len=3 | u8 enc=254 (ascii) | "abc"
 state_abc <- c(
-  charToRaw("CPV1"),
-  native_endian_flag(),
-  encode_uint(1L, 8L),
-  encode_uint(3L, 4L),
+  charToRaw("CPV2"),
+  as.raw(1L),
+  encode_uint(1L, 8L, "little"),
+  encode_uint(3L, 4L, "little"),
   as.raw(254L),
   charToRaw("abc")
 )
-state_abc_opposite_endian <- c(
-  charToRaw("CPV1"),
-  opposite_endian_flag(),
-  encode_uint(1L, 8L, opposite_endian()),
-  encode_uint(3L, 4L, opposite_endian()),
+# flag 2 marks a big-endian state, which is still read
+state_abc_big_endian <- c(
+  charToRaw("CPV2"),
+  as.raw(2L),
+  encode_uint(1L, 8L, "big"),
+  encode_uint(3L, 4L, "big"),
   as.raw(254L),
   charToRaw("abc")
 )
 y <- unserialize(mutate_serialized_state(charvec("abc"), state_abc, function(state) {
-  state_abc_opposite_endian
+  state_abc_big_endian
+}))
+stopifnot(is_charvec(y), identical(as.character(y), "abc"))
+# CPV1, written by charport 0.1, is still read
+y <- unserialize(mutate_serialized_state(charvec("abc"), state_abc, function(state) {
+  state[[4L]] <- charToRaw("1")
+  state
 }))
 stopifnot(is_charvec(y), identical(as.character(y), "abc"))
 expect_unserialize_error(mutate_serialized_state(charvec("abc"), state_abc, function(state) {
   state[[1L]] <- charToRaw("X")[[1L]]  # invalid magic
+  state
+}))
+expect_unserialize_error(mutate_serialized_state(charvec("abc"), state_abc, function(state) {
+  state[[4L]] <- charToRaw("3")  # unknown version
   state
 }))
 expect_unserialize_error(mutate_serialized_state(charvec("abc"), state_abc, function(state) {

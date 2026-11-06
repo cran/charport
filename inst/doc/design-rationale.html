@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.11.9">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -10,10 +10,13 @@
 <title>Design Rationale</title>
 <style>
 
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -186,9 +189,11 @@ text-decoration: underline; }
 <p>A <code>const char *</code> returned by <code>charport</code> is a byte pointer, not necessarily a null-terminated C string. Without the byte length, a consumer cannot know where the string ends, and calling <code>strlen()</code> may read past the view. Requiring every provider to add a terminator would rule out useful storage layouts or force a copy solely to satisfy the access API.</p>
 <p>For that reason, <code>byteviews()</code> returns pointers and lengths together. A length is useful by itself for tasks such as sizing an output buffer, so <code>lengths()</code> also has its own entry point. A pointer by itself is not a complete view, so there is no corresponding pointer-only entry point.</p>
 <h2 id="reader-fallback"><code>Reader</code> fallback</h2>
-<p><code>Reader</code> first uses ordinary R storage when it is already available: <code>DATAPTR_OR_NULL(x)</code> gives a direct pointer array without forcing. That path has persistent views, but it is still R-managed storage, so <code>charport</code> does not advertise concurrent access.</p>
-<p>If the vector is ALTREP and its class is registered, <code>Reader</code> asks the class to start a borrow. A registered class may still decline a particular vector by returning <code>NULL</code> from its init callback. In that case, or when the ALTREP class is not registered, <code>Reader</code> falls back to <code>STRING_PTR_RO(x)</code>.</p>
-<p>That fallback is intentionally plain R behavior. It may materialize the ALTREP, but it preserves correctness for every character vector. <code>charport</code> is an escape hatch from materialization when a producer allows it.</p>
+<p>If the vector is ALTREP and its class is registered, <code>Reader</code> can return a borrow. A registered class may decline a particular vector by returning <code>NULL</code> from its init callback. In that case, <code>Reader</code> falls back to <code>STRING_PTR_RO(x)</code>.</p>
+<p>That fallback is intentionally plain R behavior. It may materialize the ALTREP, but it preserves correctness for every character vector.</p>
+<h3 id="base-r-wrappers">Base R wrappers</h3>
+<p>When an attribute is set on a shared character vector of length 64 or more (<code>setNames()</code>, for example), base R avoids a copy by returning a <code>wrap_string</code>: an ALTREP object that holds the original vector and carries the new attributes. Ordinarily, taking its data pointer copies the original, which for an ALTREP class also means materializing it.</p>
+<p>On R ≥ 4.6, <code>charport</code> treats <code>wrap_string</code> like a registered class and reads the vector inside directly. If the vector inside is itself registered, <code>charport</code> handles it without materialization.</p>
 <h2 id="construction-and-access-use-different-errors">Construction and access use different errors</h2>
 <p>Reader construction is an R-facing operation. A registered provider may call R during initialization, and the fallback may allocate while materializing an ALTREP vector. Reader construction therefore allows R errors, and consumers must handle them. The Reader itself does not control any state before resolution succeeds, so it does not itself need cleanup after an R error.</p>
 <p><code>Rcpp</code> and <code>cpp11</code> consumers can choose named construction adapters when they need an R error converted to the exception type used by their wrapper. Effectively, this allows the reader to be an extension of <code>Rcpp</code> and <code>cpp11</code>.</p>
@@ -217,6 +222,8 @@ text-decoration: underline; }
 </ul>
 <p>Builder conversion creates an external pointer with a null address, registers its finalizer, and creates the ALTREP object. It moves the <code>Store</code> and installs the address only after those R allocations succeed. On failure, the caller’s <code>Store</code> remains intact, so <code>to_sexp_with_rcpp()</code> and <code>to_sexp_with_cpp11()</code> can unwind without losing it.</p>
 <p>When a <code>charvec</code> is fully materialized, it caches an ordinary <code>STRSXP</code> in ALTREP <code>data2</code> and releases the <code>charvec::Store</code> held in <code>data1</code>. The reader then naturally uses the ordinary fallback path over the cached <code>STRSXP</code>.</p>
+<h2 id="charpack-compact-representation-of-short-vectors"><code>charpack</code>: compact representation of short vectors</h2>
+<p>A <code>charvec</code> holds its <code>Store</code> through an external pointer with a finalizer. It makes sense for large vectors and is usually more memory efficient than base R strings. However, using an external pointer costs extra R objects and churn from garbage collection. <code>charpack</code> stores its strings and metadata in one ordinary R raw vector. It has smaller per-vector overhead compared to <code>charvec</code> and frequently base R strings as well. The tradeoff is it requires a copy of the full vector at construction, so is not suited for large vectors.</p>
 
 
 

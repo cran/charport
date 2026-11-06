@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <Rversion.h>
+#include <R_ext/Riconv.h>
 
 namespace {
 
@@ -137,9 +138,11 @@ const altrep_entry * find_registered_altrep(SEXP x) {
   return nullptr;
 }
 
-charport_reader direct_reader(SEXP x, const void * direct) {
+// n is the vector's length; callers already have it, and on an ALTREP vector
+// each Rf_xlength is a method call.
+charport_reader direct_reader(R_xlen_t n, const void * direct) {
   charport_reader r;
-  r.n = Rf_xlength(x);
+  r.n = n;
   r.state = const_cast<void *>(direct);
   r.release = nullptr;
   r.range = charport_reader_range_fns{
@@ -244,38 +247,147 @@ extern "C" void charport_unregister_altrep(R_altrep_class_t cls) {
   }
 }
 
+namespace {
+
+// The reader of x's registered class. False when x has none, or when its init
+// declines (returns NULL for) a vector it cannot serve, such as one whose data
+// materialization released.
+bool resolve_registered(SEXP x, const altrep_entry * registered,
+                        charport_reader & r) {
+  if(registered == nullptr) {
+    return false;
+  }
+  // init() may register another class, which can reallocate the registry.
+  // Keep the callbacks independent of the vector element's address.
+  const altrep_entry entry = *registered;
+  void * state = entry.state.init(x);
+  if(state == nullptr) {
+    return false;
+  }
+  r.state = state;
+  r.release = entry.state.release;
+  r.range = entry.range;
+  r.index = entry.index;
+  r.capabilities = entry.capabilities;
+  return true;
+}
+
+#if (R_VERSION >= R_Version(4, 6, 0))
+// Base R wraps a shared vector of length >= 64 in a wrap_string when an
+// attribute is set (setNames(), names<- on a copy, attr<-, structure()). On
+// R 4.6 the wrapper's data pointer duplicates the shared vector and
+// materializes the copy, so the broker, which only reads, resolves the wrapped
+// vector first.
+//
+// This relies on undocumented base internals: data1 is the whole wrapped
+// vector, and its strings are the wrapper's. Guards: identify the class only
+// through the R 4.6 accessors, require data1 to be a character vector of the
+// same length, and use the inner vector only when it resolves without
+// materializing; anything else reads the wrapper as before.
+// tests/test_wrapper_unwrap.R checks the assumptions against R-devel in CI.
+SEXP wrap_string_name = nullptr;
+SEXP base_package_name = nullptr;
+constexpr int max_unwrap_depth = 8;
+
+// x is an unregistered ALTREP vector. False when it is not a wrapper, or when
+// the wrapped vector would have to be materialized.
+bool resolve_wrapped(SEXP x, charport_reader & r) {
+  SEXP inner = x;  // ALTREP at the top of every iteration
+  for(int depth = 0; depth < max_unwrap_depth; ++depth) {
+    if(R_altrep_class_name(inner) != wrap_string_name ||
+       R_altrep_class_package(inner) != base_package_name) {
+      if(inner == x) {
+        return false;
+      }
+      if(resolve_registered(inner, find_registered_altrep(inner), r)) {
+        return true;
+      }
+      // Use the wrapped vector only if it is already in R storage. Anything
+      // else is left to base R, through the wrapper.
+      if(const void * direct = DATAPTR_OR_NULL(inner)) {
+        r = direct_reader(r.n, direct);
+        return true;
+      }
+      return false;
+    }
+    SEXP next = R_altrep_data1(inner);
+    if(TYPEOF(next) != STRSXP || Rf_xlength(next) != r.n) {
+      return false;
+    }
+    if(ALTREP(next) != TRUE) {
+      r = direct_reader(r.n, DATAPTR_RO(next));
+      return true;
+    }
+    inner = next;
+  }
+  return false;
+}
+#endif
+
+} // namespace
+
 extern "C" charport_reader charport_resolve(SEXP x) {
   if(TYPEOF(x) != STRSXP) {
     Rf_error("charport_resolve: x must be a character vector");
   }
 
-  if(const void * direct = DATAPTR_OR_NULL(x)) {
-    return direct_reader(x, direct);
+  if(ALTREP(x) != TRUE) {
+    return direct_reader(Rf_xlength(x), DATAPTR_RO(x));
   }
 
   charport_reader r;
   r.n = Rf_xlength(x);
-  if(ALTREP(x) == TRUE) {
-    if(const altrep_entry * registered = find_registered_altrep(x)) {
-      // init() may register another class, which can reallocate the registry.
-      // Keep the callbacks independent of the vector element's address.
-      const altrep_entry entry = *registered;
-      if(void * state = entry.state.init(x)) {
-        r.state = state;
-        r.release = entry.state.release;
-        r.range = entry.range;
-        r.index = entry.index;
-        r.capabilities = entry.capabilities;
-        return r;
-      }
-    }
+  const altrep_entry * registered = find_registered_altrep(x);
+#if (R_VERSION >= R_Version(4, 6, 0))
+  // Before STRING_PTR_RO, which copies a wrapper's shared data. The class
+  // lookups run only for unregistered ALTREP classes.
+  if(registered == nullptr && resolve_wrapped(x, r)) {
+    return r;
   }
-  return direct_reader(x, STRING_PTR_RO(x));
+#endif
+  if(resolve_registered(x, registered, r)) {
+    return r;
+  }
+  // STRING_PTR_RO returns the R storage when the vector already has it, and
+  // materializes it otherwise.
+  return direct_reader(r.n, STRING_PTR_RO(x));
 }
 
 extern "C" int charport_abi_version(void) {
   return CHARPORT_ABI_VERSION;
 }
+
+#if (R_VERSION >= R_Version(4, 5, 0))
+namespace {
+// An unmarked, non-ASCII CHARSXP. It carries no encoding bits, so
+// Rf_charIsUTF8() on it reads only R's current utf8locale flag.
+SEXP native_probe = nullptr;
+}
+
+extern "C" int charport_native_is_utf8_impl(void) {
+  return Rf_charIsUTF8(native_probe) == TRUE;
+}
+#else
+// Before 4.5 there is no API view of utf8locale. Ask R's iconv whether
+// UTF-8 bytes for U+00E9 read as native come back unchanged; any other
+// encoding changes them or fails.
+extern "C" int charport_native_is_utf8_impl(void) {
+  void * cd = Riconv_open("UTF-8", "");
+  if(cd == reinterpret_cast<void *>(-1)) {
+    return 0;
+  }
+  const char probe[2] = {'\xc3', '\xa9'};
+  char out[8];
+  const char * in_ptr = probe;
+  char * out_ptr = out;
+  size_t in_left = sizeof(probe);
+  size_t out_left = sizeof(out);
+  const size_t status = Riconv(cd, &in_ptr, &in_left, &out_ptr, &out_left);
+  Riconv_close(cd);
+  return status != static_cast<size_t>(-1) && in_left == 0 &&
+         out_ptr - out == 2 && std::memcmp(out, probe, 2) == 0;
+}
+#endif
 
 extern "C" charport_sexp_info charport_get_sexp_info(SEXP x) {
   charport_sexp_info out;
@@ -390,6 +502,16 @@ extern "C" SEXP C_register_charvec(void) {
 }
 
 extern "C" void charport_registry_init(DllInfo * dll) {
+#if (R_VERSION >= R_Version(4, 6, 0))
+  wrap_string_name = Rf_install("wrap_string");
+  base_package_name = Rf_install("base");
+#endif
+#if (R_VERSION >= R_Version(4, 5, 0))
+  native_probe = Rf_mkCharLenCE("\xc3\xa9", 2, CE_NATIVE);
+  R_PreserveObject(native_probe);
+#endif
+  R_RegisterCCallable("charport", "charport_native_is_utf8_v1",
+                      reinterpret_cast<DL_FUNC>(&charport_native_is_utf8_impl));
   R_RegisterCCallable("charport", "charport_register_altrep_v1",
                       reinterpret_cast<DL_FUNC>(&charport_register_altrep));
   R_RegisterCCallable("charport", "charport_unregister_altrep_v1",
@@ -405,6 +527,34 @@ extern "C" void charport_registry_init(DllInfo * dll) {
   R_RegisterCCallable(
     "charport", "charport_charvec_from_views_v1",
     reinterpret_cast<DL_FUNC>(&charport_charvec_from_views_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_charvec_alloc_na_v1",
+    reinterpret_cast<DL_FUNC>(&charport_charvec_alloc_na_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_charvec_get_store_v1",
+    reinterpret_cast<DL_FUNC>(&charport_charvec_get_store_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_charpack_placeholder_v1",
+    reinterpret_cast<DL_FUNC>(&charport_charpack_placeholder_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_charpack_fill_views_v1",
+    reinterpret_cast<DL_FUNC>(&charport_charpack_fill_views_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_charpack_fill_slices_v1",
+    reinterpret_cast<DL_FUNC>(&charport_charpack_fill_slices_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_charpack_fill_materialized_na_v1",
+    reinterpret_cast<DL_FUNC>(&charport_charpack_fill_materialized_na_impl)
+  );
+  R_RegisterCCallable(
+    "charport", "charport_is_charpack_v1",
+    reinterpret_cast<DL_FUNC>(&charport_is_charpack_impl)
   );
   (void)dll;
 }
