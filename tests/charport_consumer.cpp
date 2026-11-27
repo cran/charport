@@ -899,8 +899,8 @@ SEXP C_consumer_builder_direct(void) {
     char * first = store.slices.front_data();
     std::memcpy(first, "alphabeta", 9);
 
-    char * second = store.slices.push_front(5);
-    std::memcpy(second, "gamma", 5);
+    char * second = store.slices.push_front(10);
+    std::memcpy(second, "gammagamma", 10);
 
     if(store.slices.data_slice(0) != second || store.slices.data_slice(1) != first) {
       throw std::runtime_error("unexpected direct slice order");
@@ -912,9 +912,9 @@ SEXP C_consumer_builder_direct(void) {
     store.records.set(0, first, 5, CETYPE_EXT_ASCII);
     store.records.set(1, first + 5, 4, CETYPE_EXT_ASCII);
     store.records.set_na(2);
-    store.records.set(3, first, 0, CETYPE_EXT_ASCII);
+    store.records.set(3, charport::charvec::components::empty_data(), 0, CETYPE_EXT_ASCII);
     store.records.set(4, second, 5, CETYPE_EXT_ASCII);
-    store.records.set(5, second, 5, CETYPE_EXT_ASCII);
+    store.records.set(5, second + 5, 5, CETYPE_EXT_ASCII);
 
     return charport::charvec::wrap(std::move(store));
   });
@@ -1047,6 +1047,28 @@ SEXP C_consumer_growable_state(void) {
   });
 }
 
+// is_ascii with one non-ASCII byte at every position, for every length
+// through four 64-byte blocks.
+SEXP C_consumer_is_ascii(void) {
+  return test_entrypoint_boundary("is_ascii", [&]() -> SEXP {
+    std::string text(300, 'a');
+    bool ok = true;
+    for(size_t len = 0; len <= text.size(); ++len) {
+      ok = ok && charport::is_ascii(text.data(), len);
+      for(size_t at = 0; at < len; ++at) {
+        text[at] = static_cast<char>(0x80 + at % 128);
+        ok = ok && !charport::is_ascii(text.data(), len);
+        ok = ok && charport::is_ascii(text.data(), at);
+        ok = ok && charport::is_ascii(text.data() + at + 1, len - at - 1);
+        text[at] = 'a';
+      }
+    }
+    return charport_consumer::unwind_protect([ok]() -> SEXP {
+      return Rf_ScalarLogical(ok ? TRUE : FALSE);
+    });
+  });
+}
+
 SEXP C_consumer_builder_errors(void) {
   return test_entrypoint_boundary("builder_errors", [&]() -> SEXP {
     charport::charvec::Builder b(3);
@@ -1142,7 +1164,7 @@ SEXP C_consumer_context_cpp_error(void) {
 
 // C consumers routinely gather STRING_ELT results into C containers (which
 // R's GC cannot see) before storing them, relying on the source vector to
-// keep every element alive — true of any ordinary STRSXP. string_Elt must
+// keep every element alive, as any ordinary STRSXP does. string_Elt must
 // therefore never hand out an unrooted CHARSXP. Run under gctorture to make
 // a violation deterministic.
 SEXP C_consumer_elt_hold_across_alloc(SEXP x) {
@@ -1157,6 +1179,76 @@ SEXP C_consumer_elt_hold_across_alloc(SEXP x) {
   }
   UNPROTECT(1);
   return out;
+}
+
+// A moved-from Reader is empty. Returns the sizes of the moved-from Readers
+// and whether their ranges are empty, then the destination's size:
+// c(size_a, a_empty, size_b, b_empty, size_c).
+SEXP C_consumer_moved_from_reader(SEXP x) {
+  return test_entrypoint_boundary("moved_from_reader", [&]() -> SEXP {
+    charport::Reader a(x);
+    charport::Reader b(std::move(a));
+    charport::Reader c;
+    c = std::move(b);
+    const double out[5] = {
+      static_cast<double>(a.size()), a.begin() == a.end() ? 1.0 : 0.0,
+      static_cast<double>(b.size()), b.begin() == b.end() ? 1.0 : 0.0,
+      static_cast<double>(c.size())
+    };
+    return charport_consumer::unwind_protect([&]() -> SEXP {
+      SEXP result = Rf_allocVector(REALSXP, 5);
+      std::memcpy(REAL(result), out, sizeof(out));
+      return result;
+    });
+  });
+}
+
+// Opens k Readers on x, keeps the first Reader's views, and calls fn() while
+// all k are open. Returns list(views taken before the call, a read through
+// the last Reader after it). A provider whose views survive whatever fn() did
+// to the vector returns the same strings twice.
+SEXP C_consumer_readers_across_call(SEXP x, SEXP k_, SEXP fn) {
+  return test_entrypoint_boundary("readers_across_call", [&]() -> SEXP {
+    const int k = Rf_asInteger(k_);
+    if(k == NA_INTEGER || k < 1) {
+      throw std::runtime_error("k must be a positive integer");
+    }
+    std::vector<charport::Reader> readers;
+    readers.reserve(static_cast<size_t>(k));
+    for(int j = 0; j < k; ++j) {
+      charport_consumer::unwind_protect([&]() -> SEXP {
+        readers.emplace_back(x);
+        return R_NilValue;
+      });
+    }
+    const R_xlen_t n = readers.front().size();
+    charport::StrViews before(n);
+    if(n > 0) {
+      readers.front().views(0, n, before);
+    }
+    charport_consumer::unwind_protect([&]() -> SEXP {
+      SEXP call = PROTECT(Rf_lang1(fn));
+      Rf_eval(call, R_GlobalEnv);
+      UNPROTECT(1);
+      return R_NilValue;
+    });
+    return charport_consumer::unwind_protect([&]() -> SEXP {
+      SEXP out = PROTECT(Rf_allocVector(VECSXP, 2));
+      SEXP first = PROTECT(Rf_allocVector(STRSXP, n));
+      for(R_xlen_t i = 0; i < n; ++i) {
+        SET_STRING_ELT(first, i, make_charsxp(before[i]));
+      }
+      SET_VECTOR_ELT(out, 0, first);
+      SEXP second = PROTECT(Rf_allocVector(STRSXP, n));
+      R_xlen_t i = 0;
+      for(charport::StrView s : readers.back()) {
+        SET_STRING_ELT(second, i++, make_charsxp(s));
+      }
+      SET_VECTOR_ELT(out, 1, second);
+      UNPROTECT(3);
+      return out;
+    });
+  });
 }
 
 } // extern "C"

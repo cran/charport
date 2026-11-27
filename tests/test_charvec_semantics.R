@@ -74,6 +74,26 @@ x <- as_charvec(c("a", b))
 stopifnot(identical(Encoding(as.character(x)), c("unknown", "bytes")))
 stopifnot(identical(charToRaw(as.character(x)[[2L]]), as.raw(0xE9)))
 
+catn("charpack conversion copies bytes without materializing the source")
+native <- rawToChar(as.raw(c(0xc3, 0xa9)))
+Encoding(native) <- "unknown"
+for (values in list(character(), c(mixed_in, b, native),
+                    rep(c(mixed_in, b, native), 300L))) {
+  source <- as_charpack(values)
+  stopifnot(charpack_state(source) == "filled")
+  converted <- as_charvec(source)
+  stopifnot(charpack_state(source) == "filled", is_charvec(converted))
+  stopifnot(marks_identical(converted, values))
+  stopifnot(charpack_state(source) == "filled")
+}
+
+catn("unregistered deferred strings retain the broker's R fallback")
+source <- as.character(seq_len(1000L))
+stopifnot(!charport_info(source)$is_materialized)
+converted <- as_charvec(source)
+stopifnot(charport_info(source)$is_materialized,
+          identical(as.character(converted), as.character(seq_len(1000L))))
+
 catn("element access and coercions")
 ref <- enc2utf8(c("10", "20", w_utf8[[1L]], NA, ""))
 x <- as_charvec(ref)
@@ -172,9 +192,9 @@ stopifnot(is_charvec(y), marks_identical(x, y))
 
 catn("serialization round trip through a file")
 tmp <- tempfile(fileext = ".rds")
-on.exit(unlink(tmp), add = TRUE)
 saveRDS(x, tmp)
 y <- readRDS(tmp)
+unlink(tmp)
 stopifnot(is_charvec(y), marks_identical(x, y))
 
 catn("materialized charvec round-trips to a plain character vector")
@@ -187,6 +207,12 @@ catn("charport_materialize is a no-op on plain character vectors")
 stopifnot(identical(charport_materialize(letters), letters))
 err <- tryCatch({charport_materialize(1:3); NULL}, error = identity)
 stopifnot(inherits(err, "error"))
+
+catn("charport_materialize forces base R deferred strings")
+x <- as.character(seq_len(100L))
+stopifnot(!charport_info(x)$is_materialized)
+charport_materialize(x)
+stopifnot(charport_info(x)$is_materialized)
 
 catn("corrupted serialized_state errors cleanly")
 encode_uint <- function(x, size, endian = .Platform$endian) {

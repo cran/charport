@@ -22,7 +22,8 @@ namespace cpc = charport::charvec::components;
 extern "C" int charport_native_is_utf8_impl(void);
 
 namespace charvec_detail {
-inline SEXP wrap_store_with_cleanup(cpv::Store * source) noexcept;
+struct owned_store;
+inline SEXP wrap_store_with_cleanup(owned_store * source) noexcept;
 }
 
 namespace charport {
@@ -35,7 +36,7 @@ inline bool charsxp_is_ascii(SEXP x) {
   // Before 4.5 there is no CRAN-safe accessor for the CHARSXP ASCII flag, so
   // this scans the bytes (O(len) per native-encoded string). Reading the
   // levels bit directly would be free but is not API-safe; revisit later.
-  return check_ascii(CHAR(x), static_cast<size_t>(Rf_xlength(x)));
+  return charport::is_ascii(CHAR(x), static_cast<size_t>(Rf_xlength(x)));
 #endif
 }
 
@@ -331,7 +332,7 @@ inline void charvec_check_records(const charvec_serialized_layout & layout) {
 namespace charvec_detail {
 
 inline cpv::Store rebuild_store(const cpc::RecordTable & source) {
-  cpv::Store out(source.size(), 0);
+  cpv::Store out(source.size(), 0, cpv::uninitialized);
   const size_t max_block = static_cast<size_t>(std::numeric_limits<uint32_t>::max());
   size_t i = 0;
 
@@ -353,6 +354,7 @@ inline cpv::Store rebuild_store(const cpc::RecordTable & source) {
       for(size_t k = i; k < j; ++k) {
         const charport_strview record = source.view(k);
         if(record.is_na()) {
+          out.records.set_na(k);
           continue;
         }
         if(record.len == 0) {
@@ -366,7 +368,9 @@ inline cpv::Store rebuild_store(const cpc::RecordTable & source) {
     } else {
       for(size_t k = i; k < j; ++k) {
         const charport_strview record = source.view(k);
-        if(!record.is_na() && record.len == 0) {
+        if(record.is_na()) {
+          out.records.set_na(k);
+        } else if(record.len == 0) {
           out.records.set(k, cpc::empty_data(), 0, record.enc);
         }
       }
@@ -381,39 +385,39 @@ inline cpv::Store deep_copy_store(const cpv::Store & source) {
   return rebuild_store(source.records);
 }
 
+// The Store behind a charvec, with a count of the Readers open on it. The
+// external pointer holds the Store base, so get_store() and every other user
+// see a plain Store; only charvec_altrep converts back, and every Store it
+// owns was allocated as an owned_store. The count lives here rather than in
+// Store, whose layout is public. Only the main thread changes it.
+struct owned_store : cpv::Store {
+  explicit owned_store(cpv::Store && source) noexcept : cpv::Store(std::move(source)) {}
+  size_t readers = 0;
+};
+
 // The private ALTREP wrapper consumes a heap Store.  Returning the pointer
 // from these native-only helpers lets every Builder/temporary Store finish
 // before R_ExecWithCleanup starts.
-inline cpv::Store * heap_store(cpv::Store && source) {
-  return new cpv::Store(std::move(source));
+inline owned_store * heap_store(cpv::Store && source) {
+  return new owned_store(std::move(source));
 }
 
-inline cpv::Store * store_from_chars(R_xlen_t n, const SEXP * ptr) {
-  cpv::Builder builder(n);
-  for(R_xlen_t i = 0; i < n; ++i) {
-    builder.set(i, cpi::charsxp_to_view(ptr[i]));
-  }
-  cpv::Store store = builder.release_store();
-  return heap_store(std::move(store));
-}
-
-inline cpv::Store * duplicate_store(const cpv::Store & source) {
+inline owned_store * duplicate_store(const cpv::Store & source) {
   cpv::Store store = deep_copy_store(source);
   return heap_store(std::move(store));
 }
 
-inline cpv::Store * subset_store(
+inline owned_store * subset_store(
     const cpv::Store & source, R_xlen_t source_length, R_xlen_t output_length,
     const int * integer_indices, const double * real_indices) {
   cpv::Builder out(output_length);
   auto copy_element = [&](size_t out_i, R_xlen_t zero_based) {
     if(zero_based < 0 || zero_based >= source_length) {
+      out.set_na(static_cast<R_xlen_t>(out_i));
       return;
     }
     const charport_strview record = source.view(static_cast<size_t>(zero_based));
-    if(!record.is_na()) {
-      out.set(static_cast<R_xlen_t>(out_i), record);
-    }
+    out.set(static_cast<R_xlen_t>(out_i), record);
   };
 
   if(integer_indices != nullptr) {
@@ -421,6 +425,8 @@ inline cpv::Store * subset_store(
       if(integer_indices[i] != NA_INTEGER) {
         copy_element(static_cast<size_t>(i),
                      static_cast<R_xlen_t>(integer_indices[i]) - 1);
+      } else {
+        out.set_na(i);
       }
     }
   } else {
@@ -431,6 +437,8 @@ inline cpv::Store * subset_store(
          one_based < static_cast<double>(source_length) + 1.0) {
         copy_element(static_cast<size_t>(i),
                      static_cast<R_xlen_t>(one_based) - 1);
+      } else {
+        out.set_na(i);
       }
     }
   }
@@ -439,7 +447,7 @@ inline cpv::Store * subset_store(
   return heap_store(std::move(store));
 }
 
-inline cpv::Store * unserialize_store(const charvec_serialized_layout & layout) {
+inline owned_store * unserialize_store(const charvec_serialized_layout & layout) {
   charvec_check_records(layout);
   const unsigned char * size_offset = layout.size_offset;
   const unsigned char * data_offset = layout.data_offset;
@@ -471,6 +479,7 @@ inline cpv::Store * unserialize_store(const charvec_serialized_layout & layout) 
   return heap_store(std::move(store));
 }
 
+// In-place reuse below depends on Store records owning disjoint byte ranges.
 inline char * store_reserve(cpv::Store & store, size_t idx, size_t len,
                             cetype_ext_t enc) {
   const int stored_len = cpc::checked_string_size(len, "stored string length");
@@ -509,14 +518,14 @@ inline void store_assign(cpv::Store & store, size_t idx,
   }
 }
 
-inline void compact_store(cpv::Store & store) {
-  store = rebuild_store(store.records);
-}
+
 
 } // namespace charvec_detail
 
 struct charvec_altrep {
   static R_altrep_class_t class_t;
+  // Unfilled placeholders share this Store. It always has length zero.
+  static cpv::Store * placeholder_store;
 
   // The Store is the source of truth. The Elt cache only roots CHARSXPs so
   // STRING_ELT results stay alive across later allocations; it must stay in
@@ -537,34 +546,49 @@ struct charvec_altrep {
     return remaining > chunk_size ? chunk_size : remaining;
   }
 
+  static SEXP Placeholder() noexcept {
+    SEXP xp = PROTECT(R_MakeExternalPtr(placeholder_store, R_NilValue, R_NilValue));
+    R_RegisterCFinalizerEx(xp, charvec_altrep::Finalize, TRUE);
+    SEXP out = R_new_altrep(class_t, xp, R_NilValue);
+    UNPROTECT(1);
+    return out;
+  }
+
+  static void AttachStore(SEXP xp, cpv::Store & source) noexcept {
+    // Allocate the owner before moving source. Installing the address after
+    // the move cannot allocate.
+    charvec_detail::owned_store * data =
+      new(std::nothrow) charvec_detail::owned_store(std::move(source));
+    if(data == nullptr) {
+      Rf_error("charvec: could not allocate Store owner");
+    }
+    R_SetExternalPtrAddr(xp, static_cast<cpv::Store *>(data));
+  }
+
   static SEXP MoveStore(cpv::Store * source) noexcept {
     if(source == nullptr) {
       Rf_error("charvec MoveStore: source is NULL");
     }
-    SEXP xp = PROTECT(R_MakeExternalPtr(nullptr, R_NilValue, R_NilValue));
-    R_RegisterCFinalizerEx(xp, charvec_altrep::Finalize, TRUE);
-    SEXP out = PROTECT(R_new_altrep(class_t, xp, R_NilValue));
-
-    // Build the R shell before moving source. After the move, installing the
-    // address cannot allocate, so the external pointer owns the Store.
-    cpv::Store * data = new(std::nothrow) cpv::Store(std::move(*source));
-    if(data == nullptr) {
-      Rf_error("charvec MoveStore: could not allocate Store owner");
-    }
-    R_SetExternalPtrAddr(xp, data);
-    UNPROTECT(2);
+    SEXP out = PROTECT(Placeholder());
+    AttachStore(R_altrep_data1(out), *source);
+    UNPROTECT(1);
     return out;
   }
 
+  static charvec_detail::owned_store * Owner(cpv::Store * store) noexcept {
+    return static_cast<charvec_detail::owned_store *>(store);
+  }
+
   static void Finalize(SEXP xp) {
-    auto * ptr = static_cast<cpv::Store*>(R_ExternalPtrAddr(xp));
-    if(ptr == nullptr) {
-      return;
+    auto * store = static_cast<cpv::Store *>(R_ExternalPtrAddr(xp));
+    if(store != nullptr && store != placeholder_store) {
+      delete Owner(store);
     }
-    delete ptr;
     R_ClearExternalPtr(xp);
   }
 
+  // Call only while data2 is nil. Then data1 points to a Store, including
+  // the shared empty Store for an unfilled placeholder.
   static cpv::Store * Ptr(SEXP vec) {
     return static_cast<cpv::Store*>(R_ExternalPtrAddr(R_altrep_data1(vec)));
   }
@@ -583,10 +607,10 @@ struct charvec_altrep {
 
   static Rboolean Inspect(SEXP x, int /* pre */, int /* deep */, int /* pvec */,
                           void (*/* inspect_subtree */)(SEXP, int, int, int)) {
-    bool materialized = R_altrep_data2(x) != R_NilValue;
+    const bool materialized = R_altrep_data2(x) != R_NilValue;
     Rprintf("charport charvec (len=%llu, ptr=%p, %s)\n",
             static_cast<unsigned long long int>(Length(x)),
-            static_cast<void*>(Ptr(x)),
+            materialized ? nullptr : static_cast<void*>(Ptr(x)),
             materialized ? "materialized" : "not materialized");
     return TRUE;
   }
@@ -602,19 +626,26 @@ struct charvec_altrep {
     return out;
   }
 
+  // Keep an owned Store with an open Reader until the vector is collected.
+  // The shared placeholder Store outlives its Readers.
   static void install_materialized(SEXP vec, SEXP xp, SEXP data2) {
     R_set_altrep_data2(vec, data2);
-    Finalize(xp);
     R_SetExternalPtrProtected(xp, R_NilValue);
+    cpv::Store * store = static_cast<cpv::Store *>(R_ExternalPtrAddr(xp));
+    if(Owner(store)->readers == 0 || store == placeholder_store) {
+      Finalize(xp);
+      R_set_altrep_data1(vec, R_NilValue);
+    }
   }
 
-  // Materialize into data2, reusing cached CHARSXPs, then free the Store.
+  // Materialize into data2, reusing cached CHARSXPs, then free the Store
+  // unless a Reader has it open.
   static SEXP Materialize(SEXP vec) {
     SEXP data2 = R_altrep_data2(vec);
     if(data2 != R_NilValue) {
       return data2;
     }
-    auto & store = Get(vec);
+    const auto & store = Get(vec);
     const R_xlen_t n = static_cast<R_xlen_t>(store.size());
     SEXP xp = R_altrep_data1(vec);
     SEXP chunks = R_ExternalPtrProtected(xp);
@@ -675,7 +706,7 @@ struct charvec_altrep {
       return Rf_duplicate(data2);
     }
     return charport_sexp_guard("charvec Duplicate", [&]() -> SEXP {
-      cpv::Store * store = charvec_detail::duplicate_store(Get(vec));
+      charvec_detail::owned_store * store = charvec_detail::duplicate_store(Get(vec));
       return charvec_detail::wrap_store_with_cleanup(store);
     });
   }
@@ -715,6 +746,9 @@ struct charvec_altrep {
     }
 
     const R_xlen_t n = static_cast<R_xlen_t>(Get(vec).size());
+    if(n == 0) {
+      Rf_error("charvec: index out of bounds");
+    }
     chunks = PROTECT(Rf_allocVector(VECSXP, chunk_count(n)));
     R_SetExternalPtrProtected(xp, chunks);
     SEXP chunk = PROTECT(Rf_allocVector(STRSXP, chunk_len(n, c)));
@@ -777,7 +811,7 @@ struct charvec_altrep {
       }
       return 1;
     }
-    auto & data1 = Get(vec);
+    const auto & data1 = Get(vec);
     for(size_t i = 0; i < data1.size(); ++i) {
       if(data1.view(i).is_na()) {
         return 0;
@@ -800,7 +834,6 @@ struct charvec_altrep {
       return nullptr;
     }
     return charport_sexp_guard("charvec Extract_subset", [&]() -> SEXP {
-      const R_xlen_t xlen = static_cast<R_xlen_t>(Get(x).size());
       const R_xlen_t len = Rf_xlength(indx);
       const int * integer_indices = nullptr;
       const double * real_indices = nullptr;
@@ -811,8 +844,14 @@ struct charvec_altrep {
       } else {
         real_indices = REAL(indx);
       }
-      cpv::Store * store = charvec_detail::subset_store(
-        Get(x), xlen, len, integer_indices, real_indices);
+      // ALTREP index methods can materialize x and clear its Store.
+      if(R_altrep_data2(x) != R_NilValue) {
+        return nullptr;
+      }
+      const auto & source = Get(x);
+      const R_xlen_t xlen = static_cast<R_xlen_t>(source.size());
+      charvec_detail::owned_store * store = charvec_detail::subset_store(
+        source, xlen, len, integer_indices, real_indices);
       return charvec_detail::wrap_store_with_cleanup(store);
     });
   }
@@ -824,7 +863,7 @@ struct charvec_altrep {
         // materialized: serialize the plain STRSXP; unserializes to one too
         return data2;
       }
-      auto & data1 = Get(vec);
+      const auto & data1 = Get(vec);
       const size_t n = data1.size();
       // A packed state's native-tagged records are UTF-8 by construction:
       // outside a UTF-8 locale, send a temporary character vector instead,
@@ -887,20 +926,28 @@ struct charvec_altrep {
         return serialized_state;
       }
       charvec_serialized_layout layout = charvec_parse_serialized(serialized_state);
-      cpv::Store * store = charvec_detail::unserialize_store(layout);
+      charvec_detail::owned_store * store = charvec_detail::unserialize_store(layout);
       return charvec_detail::wrap_store_with_cleanup(store);
     });
   }
 
   // Broker hooks used when the reference class is registered.
-  // init borrows the store pointer that already hangs off data1; a materialized
-  // charvec has released its store, so init returns NULL and the broker serves
-  // it via the direct path over the cached data2.
+  // Count each borrow on its Store. The broker serves new Readers of a
+  // materialized charvec from data2.
   static void * reader_init(SEXP x) {
     if(R_altrep_data2(x) != R_NilValue) {
       return nullptr;
     }
-    return Ptr(x);
+    cpv::Store * store = Ptr(x);
+    ++Owner(store)->readers;
+    return store;
+  }
+
+  static void reader_release(void * state) {
+    charvec_detail::owned_store * store = Owner(static_cast<cpv::Store *>(state));
+    if(store->readers > 0) {
+      --store->readers;
+    }
   }
 
   static int reader_strviews_range(
@@ -1038,21 +1085,19 @@ namespace charvec_detail {
 // trivially destructible because R_ExecWithCleanup may bypass ordinary C++
 // stack unwinding.
 struct store_wrap_state {
-  cpv::Store * pending;
+  owned_store * pending;
 };
 
 // R APIs below either return normally or unwind through R's cleanup context;
 // none can propagate a C++ exception through that context.
 inline SEXP store_wrap_exec(void * data) noexcept {
   store_wrap_state * state = static_cast<store_wrap_state *>(data);
-  SEXP xp = PROTECT(R_MakeExternalPtr(nullptr, R_NilValue, R_NilValue));
-  R_RegisterCFinalizerEx(xp, charvec_altrep::Finalize, TRUE);
-  SEXP out = PROTECT(R_new_altrep(charvec_altrep::class_t, xp, R_NilValue));
+  SEXP out = PROTECT(charvec_altrep::Placeholder());
 
   // Transfer ownership only after every allocation above has succeeded.
-  R_SetExternalPtrAddr(xp, state->pending);
+  R_SetExternalPtrAddr(R_altrep_data1(out), static_cast<cpv::Store *>(state->pending));
   state->pending = nullptr;
-  UNPROTECT(2);
+  UNPROTECT(1);
   return out;
 }
 
@@ -1064,7 +1109,7 @@ inline void store_wrap_cleanup(void * data) noexcept {
   state->pending = nullptr;
 }
 
-inline SEXP wrap_store_with_cleanup(cpv::Store * source) noexcept {
+inline SEXP wrap_store_with_cleanup(owned_store * source) noexcept {
   if(source == nullptr) {
     Rf_error("charvec wrap: source is NULL");
   }

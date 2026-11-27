@@ -28,6 +28,10 @@ extern "C" {
  * the vector, after which Reader falls back to STRING_PTR_RO. init runs even
  * on a vector already in R storage, so it must decline any vector it cannot
  * serve, such as one whose data materialization released.
+ *
+ * init and release run on the main thread: a reader is acquired and released
+ * there, and worker threads only call the access callbacks. The borrow lasts
+ * until release, so the vector must stay protected until then.
  */
 typedef void * (*charport_reader_init_fn)(SEXP x);
 typedef void (*charport_reader_release_fn)(void * state);
@@ -154,16 +158,15 @@ typedef int (*charport_native_is_utf8_t)(void);
  * error and does not throw a C++ exception.
  */
 typedef SEXP (*charport_charvec_wrap_t)(void * store);
+typedef SEXP (*charport_charvec_placeholder_t)(void);
+typedef void (*charport_charvec_fill_store_t)(SEXP x, void * store);
 typedef SEXP (*charport_charvec_from_views_t)(
     R_xlen_t n, const char * const * ptrs, const int * lengths,
     const cetype_ext_t * encodings);
 /*
- * charvec in-place fill (see charvec/writer.h). alloc_na returns a charvec of
- * n NA strings and may raise an R error. get_store returns the Store of a
- * charvec that is neither materialized nor cached, or NULL, and raises no
- * errors. The Store type is C++ only.
+ * get_store returns a borrowed Store from a filled charvec that is neither
+ * materialized nor cached, or NULL. The Store type is C++ only.
  */
-typedef SEXP (*charport_charvec_alloc_na_t)(R_xlen_t n);
 typedef void * (*charport_charvec_get_store_t)(SEXP x);
 
 #ifndef __cplusplus
@@ -218,21 +221,6 @@ static inline SEXP charport_charvec_from_views(
 #endif
   }
   return fn(n, ptrs, lengths, encodings);
-}
-
-static inline SEXP charport_charvec_alloc_na(R_xlen_t n) {
-  static charport_charvec_alloc_na_t fn = NULL;
-  if(fn == NULL) {
-#ifdef __cplusplus
-    fn = reinterpret_cast<charport_charvec_alloc_na_t>(
-      R_GetCCallable("charport", "charport_charvec_alloc_na_v1")
-    );
-#else
-    fn = (charport_charvec_alloc_na_t)
-      R_GetCCallable("charport", "charport_charvec_alloc_na_v1");
-#endif
-  }
-  return fn(n);
 }
 
 #ifdef __cplusplus
@@ -468,16 +456,35 @@ inline attribute_hidden bool native_is_utf8() {
   return fn() != 0;
 }
 
+// The view buffers keep their arrays the same length. A failed resize or copy
+// leaves the buffer as it was: each array reserves its capacity before any of
+// them changes size, and assignment builds a copy before swapping it in.
 class ByteViews {
 public:
   explicit ByteViews(R_xlen_t size = 0) { resize(size); }
+  ByteViews(const ByteViews &) = default;
+  ByteViews(ByteViews &&) noexcept = default;
+  ByteViews & operator=(const ByteViews & other) {
+    ByteViews copy(other);
+    swap(copy);
+    return *this;
+  }
+  ByteViews & operator=(ByteViews &&) noexcept = default;
 
   void resize(R_xlen_t size) {
     if(size < 0) {
       throw std::runtime_error("charport::ByteViews: negative size");
     }
-    ptrs_.resize(static_cast<size_t>(size));
-    lens_.resize(static_cast<size_t>(size));
+    const size_t n = static_cast<size_t>(size);
+    ptrs_.reserve(n);
+    lens_.reserve(n);
+    ptrs_.resize(n);
+    lens_.resize(n);
+  }
+
+  void swap(ByteViews & other) noexcept {
+    ptrs_.swap(other.ptrs_);
+    lens_.swap(other.lens_);
   }
 
   R_xlen_t size() const noexcept {
@@ -502,14 +509,32 @@ private:
 class StrViews {
 public:
   explicit StrViews(R_xlen_t size = 0) { resize(size); }
+  StrViews(const StrViews &) = default;
+  StrViews(StrViews &&) noexcept = default;
+  StrViews & operator=(const StrViews & other) {
+    StrViews copy(other);
+    swap(copy);
+    return *this;
+  }
+  StrViews & operator=(StrViews &&) noexcept = default;
 
   void resize(R_xlen_t size) {
     if(size < 0) {
       throw std::runtime_error("charport::StrViews: negative size");
     }
-    ptrs_.resize(static_cast<size_t>(size));
-    lens_.resize(static_cast<size_t>(size));
-    encs_.resize(static_cast<size_t>(size));
+    const size_t n = static_cast<size_t>(size);
+    ptrs_.reserve(n);
+    lens_.reserve(n);
+    encs_.reserve(n);
+    ptrs_.resize(n);
+    lens_.resize(n);
+    encs_.resize(n);
+  }
+
+  void swap(StrViews & other) noexcept {
+    ptrs_.swap(other.ptrs_);
+    lens_.swap(other.lens_);
+    encs_.swap(other.encs_);
   }
 
   R_xlen_t size() const noexcept {
@@ -739,9 +764,9 @@ private:
     }
   }
 
+  // A moved-from Reader is empty: size 0, no callbacks, nothing to release.
   void disown() noexcept {
-    r_.state = nullptr;
-    r_.release = nullptr;
+    r_ = charport_reader{};
   }
 
   charport_reader r_;

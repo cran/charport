@@ -42,6 +42,32 @@ Encoding(w_bytes) <- "bytes"
 mixed <- c("plain", NA, "", w_utf8[1:20], w_latin1[21:40], w_bytes, NA, "",
            strrep("long", 1000))
 
+catn("charvec conversion copies bytes without materializing the source")
+native <- rawToChar(as.raw(c(0xc3, 0xa9)))
+Encoding(native) <- "unknown"
+for (values in list(character(), c(mixed, native), rep(c(mixed, native), 20L))) {
+  source <- as_charvec(values)
+  converted <- as_charpack(source)
+  stopifnot(!charport_info(source)$is_materialized,
+            charpack_state(converted) == "filled",
+            bytes_identical(converted, values))
+  for (n_slices in c(0L, 7L)) {
+    for (wide in c(FALSE, TRUE)) {
+      converted <- charpack_from_slices(source, n_slices, wide)
+      stopifnot(!charport_info(source)$is_materialized,
+                charpack_state(converted) == "filled",
+                bytes_identical(converted, values))
+    }
+  }
+}
+
+catn("unregistered deferred strings retain the broker's R fallback")
+source <- as.character(seq_len(1000L))
+stopifnot(!charport_info(source)$is_materialized)
+converted <- as_charpack(source)
+stopifnot(charport_info(source)$is_materialized,
+          identical(as.character(converted), as.character(seq_len(1000L))))
+
 catn("compiling consumers (R CMD SHLIB)")
 dll <- compile_test_dso("charport_consumer.cpp", label = "charport wrapper consumer")
 cpc_dll <- compile_test_dso("charpack_consumer.cpp", label = "charpack consumer")
@@ -155,6 +181,13 @@ stopifnot(is_charpack(x), identical(names(x), c("a", "b", "c")), is.null(attr(x,
 stopifnot(identical(unname(as.character(x)), c("x", NA, "")))
 x <- as_charpack(c(one = 1L, two = NA))
 stopifnot(is_charpack(x), identical(names(x), c("one", "two")), identical(as.character(x), c("1", NA)))
+as.character.charpack_test_swatch <- function(x, ...) c(colour = "blue")
+swatch <- structure(1L, class = "charpack_test_swatch")
+stopifnot(identical(names(as_charpack(swatch)), "colour"))
+names(swatch) <- "original"
+stopifnot(identical(names(as_charpack(swatch)), "original"))
+swatch <- structure(c(first = 1L, second = 2L), class = "charpack_test_swatch")
+stopifnot(identical(names(as_charpack(swatch)), "colour"))
 stopifnot(is_charpack(as_charpack(character(0))), length(as_charpack(character(0))) == 0L)
 cv <- charvec("p", "q")
 x <- as_charpack(cv)
@@ -376,21 +409,53 @@ r <- cpc("C_cpc_from_store", input, 0L)
 stopifnot(r[[3]], identical(as.character(r[[1]]), input),
           identical(Encoding(as.character(r[[1]])), c("unknown", "UTF-8", "unknown", "unknown")))
 
-catn("public header: charvec alloc_na, get_store and Writer")
-x <- cpc("C_cpc_charvec_fill", mixed, FALSE)
-stopifnot(is_charvec(x), bytes_identical(x, mixed))
-stopifnot(cpc("C_cpc_get_store_is_null", x))  # read above: has an Elt cache or data2
-x <- cpc("C_cpc_charvec_fill", mixed, TRUE)
-half <- length(mixed) %/% 2L
-expected <- mixed
-expected[seq_len(half + 1L)] <- NA
-stopifnot(is_charvec(x), bytes_identical(x, expected))
+catn("public header: get_store")
 x <- charvec("a", "b")
 stopifnot(!cpc("C_cpc_get_store_is_null", x))
 invisible(x[[1]])
 stopifnot(cpc("C_cpc_get_store_is_null", x))
 stopifnot(cpc("C_cpc_get_store_is_null", letters))
 stopifnot(cpc("C_cpc_get_store_is_null", charpack_from_slices("a")))
+
+catn("Builder fills a charvec placeholder in place")
+data1_has_store <- function(x) .Call(charport_native_symbol("C_charvec_data1_has_store"), x)
+for (input in list(character(), mixed)) {
+  x <- cpc("C_cpc_charvec_placeholder")
+  parent <- list(value = x)
+  stopifnot(is_charvec(x), length(x) == 0L, !anyNA(x), cpc("C_cpc_get_store_is_null", x),
+            identical(data1_has_store(x), FALSE),
+            identical(x[1L], NA_character_),
+            identical(unserialize(serialize(x, NULL)), character()))
+  invisible(cpc("C_cpc_charvec_fill_placeholder", x, input))
+  stopifnot(!cpc("C_cpc_get_store_is_null", parent$value),
+            identical(data1_has_store(x), TRUE))
+  expect_error_matching(cpc("C_cpc_charvec_fill_placeholder", x, "again"), "unfilled charvec placeholder")
+  stopifnot(bytes_identical(parent$value, input))
+  invisible(charport_materialize(x))
+  stopifnot(is.null(data1_has_store(x)), cpc("C_cpc_get_store_is_null", x),
+            any(grepl(", materialized)", capture.output(.Internal(inspect(x))), fixed = TRUE)))
+}
+expect_error_matching(cpc("C_cpc_charvec_fill_placeholder", character(0), "x"), "unfilled charvec placeholder")
+x <- cpc("C_cpc_charvec_placeholder")
+invisible(charport_materialize(x))
+stopifnot(is.null(data1_has_store(x)))
+expect_error_matching(cpc("C_cpc_charvec_fill_placeholder", x, "x"), "unfilled charvec placeholder")
+
+catn("Readers on an unfilled charvec keep the placeholder Store through fill")
+x <- cpc("C_cpc_charvec_placeholder")
+other <- cpc("C_cpc_charvec_placeholder")
+stopifnot(identical(cpc("C_cpc_reader_caps", x), c(TRUE, TRUE)),
+          identical(data1_has_store(x), FALSE), identical(reader_count(x), 0L))
+out <- consumer("C_consumer_readers_across_call", x, 1L, function() {
+  stopifnot(identical(reader_count(other), 1L))
+  charport_materialize(other)
+  stopifnot(is.null(data1_has_store(other)))
+  cpc("C_cpc_charvec_fill_placeholder", x, mixed)
+  charport_materialize(x)
+})
+stopifnot(identical(out, list(character(), character())),
+          is.null(data1_has_store(x)), bytes_identical(x, mixed),
+          identical(reader_count(cpc("C_cpc_charvec_placeholder")), 0L))
 
 catn("subsetting a filled charpack copies records into a new charpack")
 # Fresh sources each time: the state checks come before any R element read.

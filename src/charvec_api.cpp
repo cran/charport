@@ -1,40 +1,15 @@
 #include "charvec_altrep.h"
-#include "charpack_altrep.h"
 #include "charport_registry.h"
 
 #include <cstdio>
 #include <exception>
 #include <limits>
 #include <memory>
-#include <stdexcept>
 
 namespace {
 
 bool is_charvec_sexp(SEXP x) {
   return R_altrep_inherits(x, charvec_altrep::class_t) == TRUE;
-}
-
-cpv::Store & checked_store(SEXP x) {
-  if(!is_charvec_sexp(x)) {
-    throw std::runtime_error("x must be a charvec");
-  }
-  if(R_altrep_data2(x) != R_NilValue) {
-    throw std::runtime_error("charvec is materialized; its store has been released");
-  }
-  auto * ptr = charvec_altrep::Ptr(x);
-  if(ptr == nullptr) {
-    throw std::runtime_error("charvec store pointer is null");
-  }
-  return *ptr;
-}
-
-size_t checked_len_arg(SEXP n_) {
-  const double n = Rf_asReal(n_);
-  if(ISNAN(n) || n < 0 ||
-     n > static_cast<double>(std::numeric_limits<R_xlen_t>::max())) {
-    throw std::runtime_error("invalid length");
-  }
-  return static_cast<size_t>(n);
 }
 
 struct bulk_builder_state {
@@ -110,30 +85,75 @@ extern "C" SEXP charport_charvec_from_views_impl(
     &bulk_builder_to_sexp, &state, &bulk_builder_cleanup, &state);
 }
 
+// Ordinary vectors are read directly; ALTREP input goes through the broker in
+// fixed batches, each copied before the next read. Median times for 1e6 short
+// strings: ordinary input, direct 23.5 ms, batches 25 ms, one Reader call per
+// element 27 ms, one call for the whole vector 34 ms (its three n-length view
+// arrays fall out of cache); charpack input, batches 8.3 ms, whole vector
+// 9.7 ms, per element 10.7 ms.
 extern "C" SEXP C_as_charvec(SEXP x) {
-  return charport_sexp_guard("as_charvec", [&]() -> SEXP {
-    if(TYPEOF(x) != STRSXP) {
-      throw std::runtime_error("x must be a character vector");
-    }
+  if(TYPEOF(x) != STRSXP) {
+    Rf_error("charport as_charvec: x must be a character vector");
+  }
+  if(ALTREP(x) != TRUE) {
     const R_xlen_t n = Rf_xlength(x);
-    const SEXP * ptr = STRING_PTR_RO(x);
-    cpv::Store * store = charvec_detail::store_from_chars(n, ptr);
+    const SEXP * src = STRING_PTR_RO(x);
+    return charport_sexp_guard("as_charvec", [&]() -> SEXP {
+      charvec_detail::owned_store * store;
+      {
+        cpv::Builder builder(n);
+        for(R_xlen_t i = 0; i < n; ++i) {
+          builder.set(i, cpi::charsxp_to_view(src[i]));
+        }
+        store = charvec_detail::heap_store(builder.release_store());
+      }
+      return charvec_detail::wrap_store_with_cleanup(store);
+    });
+  }
+
+  const charport_reader resolved = charport::resolve(x);
+  return charport_sexp_guard("as_charvec", [&]() -> SEXP {
+    charvec_detail::owned_store * store;
+    {
+      charport::Reader reader(resolved);
+      const R_xlen_t n = reader.size();
+      const R_xlen_t batch = 256;
+      const char * ptrs[256];
+      int lengths[256];
+      cetype_ext_t encodings[256];
+      cpv::Builder builder(n);
+      for(R_xlen_t start = 0; start < n; start += batch) {
+        const R_xlen_t count = n - start < batch ? n - start : batch;
+        reader.views(start, count, ptrs, lengths, encodings);
+        for(R_xlen_t j = 0; j < count; ++j) {
+          builder.set(start + j, make_strview(ptrs[j], lengths[j], encodings[j]));
+        }
+      }
+      store = charvec_detail::heap_store(builder.release_store());
+    }
     return charvec_detail::wrap_store_with_cleanup(store);
   });
 }
 
-extern "C" SEXP charport_charvec_alloc_na_impl(R_xlen_t n) {
-  if(n < 0) {
-    Rf_error("charport charvec alloc_na: negative length");
+extern "C" SEXP charport_charvec_placeholder_impl(void) {
+  return charvec_altrep::Placeholder();
+}
+
+extern "C" void charport_charvec_fill_store_impl(SEXP x, void * source) {
+  if(source == nullptr || TYPEOF(x) != STRSXP || ALTREP(x) != TRUE ||
+      !is_charvec_sexp(x)) {
+    Rf_error("charport charvec fill_store: expected an unfilled charvec placeholder and a Store");
   }
-  return charport_sexp_guard("charvec alloc_na", [&]() -> SEXP {
-    cpv::Store * store = new cpv::Store(static_cast<size_t>(n), 0);
-    return charvec_detail::wrap_store_with_cleanup(store);
-  });
+  if(R_altrep_data2(x) != R_NilValue ||
+      charvec_altrep::Ptr(x) != charvec_altrep::placeholder_store) {
+    Rf_error("charport charvec fill_store: expected an unfilled charvec placeholder");
+  }
+  charvec_altrep::AttachStore(R_altrep_data1(x), *static_cast<cpv::Store *>(source));
 }
 
 // No data2 and no Elt cache means R holds no CHARSXP derived from the Store.
-// A Reader leaves no trace, so the caller must own the vector (see writer.h).
+// get_store() cannot see other references to the vector, so the caller must
+// own it.
 extern "C" void * charport_charvec_get_store_impl(SEXP x) {
   if(TYPEOF(x) != STRSXP || ALTREP(x) != TRUE || !is_charvec_sexp(x)) {
     return nullptr;
@@ -145,15 +165,8 @@ extern "C" void * charport_charvec_get_store_impl(SEXP x) {
   if(R_ExternalPtrProtected(xp) != R_NilValue) {
     return nullptr;
   }
-  return R_ExternalPtrAddr(xp);
-}
-
-extern "C" SEXP C_charvec_alloc(SEXP n_) {
-  return charport_sexp_guard("charvec_alloc", [&]() -> SEXP {
-    const size_t n = checked_len_arg(n_);
-    cpv::Store * store = new cpv::Store(n, 0);
-    return charvec_detail::wrap_store_with_cleanup(store);
-  });
+  void * store = R_ExternalPtrAddr(xp);
+  return store == charvec_altrep::placeholder_store ? nullptr : store;
 }
 
 extern "C" SEXP C_is_charvec(SEXP x) {
@@ -161,65 +174,9 @@ extern "C" SEXP C_is_charvec(SEXP x) {
 }
 
 extern "C" SEXP C_charport_materialize(SEXP x) {
-  return charport_sexp_guard("charport_materialize", [&]() -> SEXP {
-    if(is_charvec_sexp(x)) {
-      charvec_altrep::Materialize(x);
-      return x;
-    }
-    if(charpack_altrep::is(x)) {
-      charpack_altrep::Materialize(x);
-      return x;
-    }
-    if(TYPEOF(x) != STRSXP) {
-      throw std::runtime_error("x must be a character vector");
-    }
-    return x;
-  });
-}
-
-extern "C" SEXP C_charvec_stats(SEXP x) {
-  return charport_sexp_guard("charvec_stats", [&]() -> SEXP {
-    if(!is_charvec_sexp(x)) {
-      throw std::runtime_error("x must be a charvec");
-    }
-    const bool materialized = R_altrep_data2(x) != R_NilValue;
-    const char * names[] = {"length", "n_slices", "materialized", ""};
-    SEXP out = PROTECT(Rf_mkNamed(VECSXP, names));
-    if(materialized) {
-      SET_VECTOR_ELT(out, 0, Rf_ScalarReal(static_cast<double>(Rf_xlength(R_altrep_data2(x)))));
-      SET_VECTOR_ELT(out, 1, Rf_ScalarReal(NA_REAL));
-    } else {
-      auto & store = checked_store(x);
-      SET_VECTOR_ELT(out, 0, Rf_ScalarReal(static_cast<double>(store.size())));
-      SET_VECTOR_ELT(out, 1, Rf_ScalarReal(static_cast<double>(store.slices.count())));
-    }
-    SET_VECTOR_ELT(out, 2, Rf_ScalarLogical(materialized ? TRUE : FALSE));
-    UNPROTECT(1);
-    return out;
-  });
-}
-
-extern "C" SEXP C_charvec_assign(SEXP x, SEXP i_, SEXP value) {
-  return charport_sexp_guard("charvec_assign", [&]() -> SEXP {
-    if(!is_charvec_sexp(x)) {
-      throw std::runtime_error("x must be a charvec");
-    }
-    if(TYPEOF(value) != STRSXP || Rf_xlength(value) != 1) {
-      throw std::runtime_error("value must be a character vector of length 1");
-    }
-    const double i = Rf_asReal(i_);
-    const R_xlen_t len = charvec_altrep::Length(x);
-    if(ISNAN(i) || i < 1 || i > static_cast<double>(len)) {
-      throw std::runtime_error("index out of bounds");
-    }
-    charvec_altrep::string_Set_elt(x, static_cast<R_xlen_t>(i) - 1, STRING_ELT(value, 0));
-    return x;
-  });
-}
-
-extern "C" SEXP C_charvec_compact(SEXP x) {
-  return charport_sexp_guard("charvec_compact", [&]() -> SEXP {
-    charvec_detail::compact_store(checked_store(x));
-    return x;
-  });
+  if(TYPEOF(x) != STRSXP) {
+    Rf_error("charport charport_materialize: x must be a character vector");
+  }
+  (void) STRING_PTR_RO(x);
+  return x;
 }

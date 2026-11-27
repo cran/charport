@@ -1,3 +1,41 @@
+# charport 0.3.0 (2026-11-26)
+
+* A `Reader`'s views of a `charvec` or `charpack` stay valid when the vector
+  is materialized while the `Reader` is open, for example through another
+  reference to it or a wrapper around it. Both classes count open Readers and
+  keep their packed data while any is open; it is then freed with the vector.
+  The `charpack` serialization format is unchanged.
+* Readers are acquired and released on the main thread, and worker threads
+  only call access methods. Keep the vector protected until its `Reader` is
+  released. `charport_info()` now reports `stateful_reader` for `charvec` and
+  `charpack`.
+* A failed `resize()` or copy assignment of `charport::ByteViews` or
+  `charport::StrViews` leaves the buffer as it was. An allocation failure
+  could previously leave `size()` larger than one of its arrays. These are
+  inline header classes, so a consumer package picks up the fix on rebuild.
+* A moved-from `charport::Reader` is empty, with size 0. It previously kept
+  its length and access callbacks without its state. Also a header fix.
+* `charport_materialize()` materializes any character vector through R's
+  accessor, including base R deferred strings.
+* `Store(n, initial_slice_bytes)` and `RecordTable(n)` initialize records to NA.
+  Pass `charvec::uninitialized` to skip the fill when the caller writes every
+  record, including missing values. Fixed-size builders use that path.
+* `charvec::placeholder()` creates a charvec that receives a completed Store
+  through `Builder::fill_placeholder()` or `charvec::fill_store()`. To create an
+  NA-filled charvec, wrap a two-argument Store. The `alloc_na()` entry point has
+  been removed.
+* `charvec::Writer` has been removed. Use `charvec::Builder` to fill the records
+  and call `release_store()` when you need the finished Store.
+* New `charport::is_ascii(ptr, len)` in `charport/ascii.h`: an R-free ASCII
+  scan that is fast on ASCII text and stops early on non-ASCII text.
+* Test-only native entry points and forced-wide charpack controls now live in
+  a test-built library. `as_charpack()` has a dedicated production converter.
+* `as_charvec()` and `as_charpack()` read registered ALTREP inputs through the
+  broker, so conversion between charvec and charpack keeps the source packed.
+  Unregistered ALTREP inputs retain the ordinary R fallback.
+* Document that non-empty records in a finished `charvec::Store` must have
+  disjoint byte ranges, because element assignment can reuse those bytes.
+
 # charport 0.2.0 (2026-11-06)
 
 * New `charpack` class: a compact ALTREP character vector whose strings live
